@@ -3,6 +3,7 @@ from app.evaluation.dataset import EXTENDED_CASES
 from app.evaluation.metrics import summarize
 from app.evaluation.mutations import CASES,evaluate_mutation
 from app.evaluation.retrieval import evaluate_retrieval
+from app.evaluation.severity import evaluate_severity
 
 router=APIRouter(prefix="/api/v1/evaluation",tags=["evaluation"])
 
@@ -14,3 +15,7 @@ def mutation_evaluation()->dict:
 @router.get("/retrieval")
 def retrieval_evaluation()->dict:
     return evaluate_retrieval()
+
+@router.get("/severity")
+def severity_evaluation()->dict:
+    return evaluate_severity()
