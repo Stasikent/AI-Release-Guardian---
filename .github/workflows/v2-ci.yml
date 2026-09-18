@@ -21,7 +21,11 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m playwright install --with-deps chromium
       - run: pytest -q
+        env:
+          PYTHONPATH: .
       - name: Print evaluation metrics
+        env:
+          PYTHONPATH: .
         run: python -c "from app.evaluation.report import build_evaluation_report; import json; print(json.dumps(build_evaluation_report(), indent=2))"
 
   frontend:
