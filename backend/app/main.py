@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.compare import router as compare_router
 from app.api.projects import router as projects_router
@@ -16,6 +17,14 @@ app = FastAPI(
     version="2.0.0-dev",
     description="Backend API for AI-assisted release risk analysis.",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(scans_router)
