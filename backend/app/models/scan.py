@@ -17,6 +17,16 @@ class TestableObject(BaseModel):
     value: str = ""
     text: str = ""
     aria_label: str = ""
+    aria_describedby: str = ""
+    aria_expanded: str = ""
+    aria_checked: str = ""
+    aria_selected: str = ""
+    role: str = ""
+    disabled: bool = False
+    required: bool = False
+    checked: bool = False
+    selected: bool = False
+    readonly: bool = False
     title: str = ""
     href: str = ""
     src: str = ""
