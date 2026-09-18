@@ -23,3 +23,12 @@ def test_aria_label_has_priority_for_display_name() -> None:
     objects = extract_testable_objects(HTML)
     button = next(obj for obj in objects if obj.object_type == "button")
     assert button.display_name == "Sign in"
+
+def test_extracts_interactive_and_accessibility_state() -> None:
+    html='<input id="tos" type="checkbox" required checked aria-describedby="hint"><button id="menu" disabled aria-expanded="false">Menu</button>'
+    objects=extract_testable_objects(html)
+    checkbox=next(x for x in objects if x.id=="tos")
+    button=next(x for x in objects if x.id=="menu")
+    assert checkbox.required is True and checkbox.checked is True
+    assert checkbox.aria_describedby=="hint"
+    assert button.disabled is True and button.aria_expanded=="false"
