@@ -1,60 +1,33 @@
+from collections import Counter
 from app.models.diff import DiffReport, RiskFactor, RiskReport
 
-INTERACTIVE_TYPES = {"input", "button", "form", "select", "textarea", "link"}
+INTERACTIVE_TYPES={"input","button","form","select","textarea","link"}
+FIELD_WEIGHTS={
+ "disabled":14,"required":10,"readonly":10,"checked":8,"selected":8,
+ "href":10,"src":6,"type":8,"role":7,"aria_checked":6,"aria_selected":6,
+ "aria_expanded":5,"aria_label":4,"aria_describedby":3,
+ "placeholder":3,"value":4,"text":2,"css_class":1,"title":2,
+}
+def _factor(code,description,weight,count):
+    return RiskFactor(code=code,description=description,weight=weight,count=count,points=weight*count)
 
-def _factor(code: str, description: str, weight: int, count: int) -> RiskFactor:
-    return RiskFactor(
-        code=code,
-        description=description,
-        weight=weight,
-        count=count,
-        points=weight * count,
-    )
-
-def calculate_risk(diff: DiffReport) -> RiskReport:
-    removed_interactive = sum(
-        obj.object_type in INTERACTIVE_TYPES for obj in diff.removed
-    )
-    added_interactive = sum(
-        obj.object_type in INTERACTIVE_TYPES for obj in diff.added
-    )
-    changed_interactive = sum(
-        change.after.object_type in INTERACTIVE_TYPES for change in diff.changed
-    )
-    locator_changes = sum(
-        any(field in change.changed_fields for field in ("href", "src"))
-        for change in diff.changed
-    )
-
-    factors = [
-        _factor("removed_interactive", "Interactive elements removed", 12, removed_interactive),
-        _factor("changed_interactive", "Interactive elements changed", 8, changed_interactive),
-        _factor("added_interactive", "Interactive elements added", 4, added_interactive),
-        _factor("removed_other", "Non-interactive elements removed", 4, len(diff.removed) - removed_interactive),
-        _factor("changed_other", "Non-interactive elements changed", 2, len(diff.changed) - changed_interactive),
-        _factor("navigation_media_change", "Navigation or resource targets changed", 5, locator_changes),
+def calculate_risk(diff:DiffReport)->RiskReport:
+    removed_interactive=sum(o.object_type in INTERACTIVE_TYPES for o in diff.removed)
+    added_interactive=sum(o.object_type in INTERACTIVE_TYPES for o in diff.added)
+    removed_other=len(diff.removed)-removed_interactive
+    field_counts=Counter(field for change in diff.changed for field in change.changed_fields)
+    factors=[
+      _factor("removed_interactive","Interactive elements removed",12,removed_interactive),
+      _factor("added_interactive","Interactive elements added",4,added_interactive),
+      _factor("removed_other","Non-interactive elements removed",4,removed_other),
     ]
-    factors = [factor for factor in factors if factor.count > 0]
-    raw = sum(factor.points for factor in factors)
-    score = min(raw, 100)
-
-    if score < 15:
-        level = "LOW"
-    elif score < 40:
-        level = "MEDIUM"
-    elif score < 70:
-        level = "HIGH"
-    else:
-        level = "CRITICAL"
-
-    summary = (
-        f"{len(diff.added)} added, {len(diff.removed)} removed, "
-        f"{len(diff.changed)} changed elements; {diff.unchanged_count} unchanged."
-    )
-    return RiskReport(
-        score=score,
-        raw_score=raw,
-        level=level,
-        factors=factors,
-        summary=summary,
-    )
+    for field,count in sorted(field_counts.items()):
+        weight=FIELD_WEIGHTS.get(field,3)
+        factors.append(_factor(f"field_{field}",f"Element field changed: {field}",weight,count))
+    factors=[f for f in factors if f.count>0]
+    raw=sum(f.points for f in factors);score=min(raw,100)
+    level="LOW" if score<15 else "MEDIUM" if score<40 else "HIGH" if score<70 else "CRITICAL"
+    top=sorted(factors,key=lambda f:f.points,reverse=True)[:3]
+    reasons=", ".join(f"{f.code} (+{f.points})" for f in top) or "no material deterministic changes"
+    summary=f"{len(diff.added)} added, {len(diff.removed)} removed, {len(diff.changed)} changed; {diff.unchanged_count} unchanged. Main drivers: {reasons}."
+    return RiskReport(score=score,raw_score=raw,level=level,factors=factors,summary=summary)
