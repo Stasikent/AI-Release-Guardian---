@@ -6,6 +6,7 @@ from app.api.ai import router as ai_router
 from app.api.compare import router as compare_router
 from app.api.projects import router as projects_router
 from app.api.knowledge import router as knowledge_router
+from app.api.evaluation import router as evaluation_router
 from app.api.scans import router as scans_router
 from app.db import Base, engine
 
@@ -34,6 +35,7 @@ app.include_router(ai_router)
 app.include_router(compare_router)
 app.include_router(projects_router)
 app.include_router(knowledge_router)
+app.include_router(evaluation_router)
 
 @app.get("/health", tags=["system"])
 def health() -> dict[str, str]:
