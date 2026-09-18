@@ -1,5 +1,6 @@
 from typing import Literal
 from pydantic import BaseModel, Field
+from app.models.evidence import EvidenceBundle
 
 class AIAnalysis(BaseModel):
     release_summary: str
@@ -13,3 +14,4 @@ class AIAnalysisResponse(BaseModel):
     provider: str
     model: str
     analysis: AIAnalysis
+    evidence: EvidenceBundle = Field(default_factory=EvidenceBundle)
