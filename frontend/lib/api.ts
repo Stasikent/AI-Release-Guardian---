@@ -20,3 +20,13 @@ export const api={
   scan:(id:number,url:string,role:"baseline"|"current")=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role})}),
   compare:(id:number)=>request<CompareResult>(`/api/v1/projects/${id}/compare`),
 };
+
+export type EvidenceItem={id:string;kind:string;statement:string;source:string;score:number|null};
+export type AIAnalysisResponse={
+ provider:string;model:string;
+ analysis:{release_summary:string;likely_impacts:string[];regression_focus:string[];suggested_tests:string[];confidence:"low"|"medium"|"high";limitations:string[]};
+ evidence:{observed:EvidenceItem[];retrieved:EvidenceItem[]};
+};
+export async function analyzeProject(id:number):Promise<AIAnalysisResponse>{
+ return request<AIAnalysisResponse>(`/api/v1/projects/${id}/ai-analysis`,{method:"POST"});
+}
