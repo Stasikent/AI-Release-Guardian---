@@ -38,4 +38,4 @@ def build_release_facts(comparison:CompareResult,evidence:EvidenceBundle|None=No
 async def analyze(comparison:CompareResult,provider:LLMProvider,documents:list|None=None)->AIAnalysisResponse:
     evidence=build_evidence(comparison,documents)
     analysis=await provider.analyze_release(build_release_facts(comparison,evidence))
-    return AIAnalysisResponse(provider=provider.name,model=provider.model,analysis=analysis)
+    return AIAnalysisResponse(provider=provider.name,model=provider.model,analysis=analysis,evidence=evidence)
