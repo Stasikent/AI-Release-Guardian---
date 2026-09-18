@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.ai import router as ai_router
 from app.api.compare import router as compare_router
 from app.api.projects import router as projects_router
 from app.api.scans import router as scans_router
@@ -28,6 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(scans_router)
+app.include_router(ai_router)
 app.include_router(compare_router)
 app.include_router(projects_router)
 
