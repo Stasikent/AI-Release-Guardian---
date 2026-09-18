@@ -4,7 +4,7 @@ def _case(name,b,c,a=0,r=0,ch=0,risk=0):
     return MutationCase(name,b,c,a,r,ch,risk)
 
 EXTENDED_CASES=[
-_case("button_disabled",'<button id="pay">Pay</button>','<button id="pay" disabled>Pay</button>',0,0,0,0),
+_case("button_disabled_attribute_unsupported",'<button id="pay">Pay</button>','<button id="pay" disabled>Pay</button>',0,0,0,0),
 _case("button_type_changed",'<button id="save" type="button">Save</button>','<button id="save" type="submit">Save</button>',0,0,1,1),
 _case("input_placeholder_changed",'<input id="email" placeholder="Email">','<input id="email" placeholder="Work email">',0,0,1,1),
 _case("input_type_changed",'<input id="phone" type="text">','<input id="phone" type="tel">',0,0,1,1),
@@ -13,7 +13,7 @@ _case("textarea_added",'<form id="f"></form>','<form id="f"><textarea id="note">
 _case("select_removed",'<select id="country"><option>DE</option></select>','',0,1,0,10),
 _case("form_added",'','<form id="signup"></form>',1,0,0,1),
 _case("form_removed",'<form id="signup"></form>','',0,1,0,10),
-_case("aria_label_changed",'<button id="menu" aria-label="Open menu"></button>','<button id="menu" aria-label="Menu"></button>',0,0,0,0),
+_case("aria_label_identity_change",'<button id="menu" aria-label="Open menu"></button>','<button id="menu" aria-label="Menu"></button>',0,0,0,0),
 _case("title_changed",'<a id="docs" title="Docs" href="/docs">Docs</a>','<a id="docs" title="Documentation" href="/docs">Docs</a>',0,0,1,1),
 _case("image_src_changed",'<img id="hero" src="/a.png">','<img id="hero" src="/b.png">',0,0,1,1),
 _case("image_added",'','<img id="logo" src="/logo.png">',1,0,0,0),
