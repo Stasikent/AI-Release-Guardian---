@@ -5,8 +5,14 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://guardian:guardian@db:5432/guardian
+      CORS_ORIGINS: http://localhost:3000
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai-compatible}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_KEY: ${LLM_API_KEY:-}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build:
@@ -24,6 +30,11 @@ services:
       POSTGRES_DB: guardian
       POSTGRES_USER: guardian
       POSTGRES_PASSWORD: guardian
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U guardian -d guardian"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - guardian_db:/var/lib/postgresql/data
 
