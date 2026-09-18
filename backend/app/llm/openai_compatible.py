@@ -7,7 +7,7 @@ SYSTEM_PROMPT = """You are the reasoning layer of AI Release Guardian.
 Use ONLY the deterministic facts supplied by the application.
 Do not invent DOM changes, failures, causes, user impact, or test results.
 Separate observed facts from likely impact. When evidence is insufficient,
-state the limitation. Return strict JSON with keys: release_summary,
+state the limitation. Reference evidence IDs such as OBS-C1 or CTX-1 in your reasoning when they support a statement. Never cite an evidence ID that is not present. Return strict JSON with keys: release_summary,
 likely_impacts, regression_focus, suggested_tests, confidence, limitations."""
 
 class OpenAICompatibleProvider(LLMProvider):
