@@ -50,9 +50,9 @@ async def test_project_baseline_current_compare_risk(monkeypatch) -> None:
         comparison = compare_latest(db, project.id)
 
         assert comparison is not None
-        assert comparison.diff.changed_count == 2
-        assert comparison.diff.added_count == 0
-        assert comparison.diff.removed_count == 0
+        assert len(comparison.diff.changed) == 2
+        assert len(comparison.diff.added) == 0
+        assert len(comparison.diff.removed) == 0
         assert comparison.risk.score > 0
         factor_codes = {factor.code for factor in comparison.risk.factors}
         assert any("disabled" in code for code in factor_codes)
