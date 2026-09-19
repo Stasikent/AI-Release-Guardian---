@@ -26,6 +26,10 @@ class OpenAICompatibleProvider(LLMProvider):
         payload={"model":self.model,"temperature":0.1,"messages":[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":json.dumps(facts,ensure_ascii=False)}]}
         if self.use_response_format: payload["response_format"]={"type":"json_object"}
         response=await self._request(payload)
+        if self.use_response_format and response.status_code in (400,422):
+            fallback_payload=dict(payload)
+            fallback_payload.pop("response_format",None)
+            response=await self._request(fallback_payload)
         if response.status_code in (401,403): raise LLMAuthenticationError("LLM provider rejected credentials")
         if response.status_code==429: raise LLMRateLimitError("LLM provider rate limit reached")
         if response.status_code>=400: raise LLMUpstreamError(f"LLM provider returned HTTP {response.status_code}")
