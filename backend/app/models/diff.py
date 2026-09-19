@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.models.scan import TestableObject
 
 class RepresentativeObject(BaseModel):
@@ -12,6 +12,8 @@ class ElementChange(BaseModel):
     before: TestableObject
     after: TestableObject
     changed_fields: list[str]
+    risk_points: int = 0
+    field_risk_points: dict[str, int] = Field(default_factory=dict)
 
 class DiffReport(BaseModel):
     added: list[TestableObject]
@@ -33,6 +35,15 @@ class RiskReport(BaseModel):
     factors: list[RiskFactor]
     summary: str
 
+class RegressionFocusItem(BaseModel):
+    priority: int
+    severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    target: str
+    locator: str
+    reason: str
+    risk_points: int
+    suggested_check: str
+
 class CompareRequest(BaseModel):
     baseline: list[TestableObject]
     current: list[TestableObject]
@@ -40,3 +51,4 @@ class CompareRequest(BaseModel):
 class CompareResult(BaseModel):
     diff: DiffReport
     risk: RiskReport
+    regression_focus: list[RegressionFocusItem] = Field(default_factory=list)
