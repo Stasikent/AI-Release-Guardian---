@@ -3,9 +3,9 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000
 export type Project = { id:number; name:string; description:string; created_at:string };
 export type Scan = { id:number; project_id:number; url:string; title:string; role:string; total_testable_objects:number; created_at:string };
 export type RiskFactor = { code:string; description:string; weight:number; count:number; points:number };\nexport type TestableObject = { object_type:string; tag_name:string; id?:string|null; name?:string|null; locator:string; display_name?:string|null; [key:string]:unknown };\nexport type ElementChange = { fingerprint:string; before:TestableObject; after:TestableObject; changed_fields:string[]; risk_points:number; field_risk_points:Record<string,number> };
-export type CompareResult = {
+export type RegressionFocusItem = { priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; target:string; locator:string; reason:string; risk_points:number; suggested_check:string };\nexport type CompareResult = {
   diff:{ added:TestableObject[]; removed:TestableObject[]; changed:ElementChange[]; unchanged_count:number };
-  risk:{ score:number; raw_score:number; level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; factors:RiskFactor[]; summary:string };
+  risk:{ score:number; raw_score:number; level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; factors:RiskFactor[]; summary:string };\n  regression_focus:RegressionFocusItem[];
 };
 
 async function request<T>(path:string, init?:RequestInit):Promise<T>{
