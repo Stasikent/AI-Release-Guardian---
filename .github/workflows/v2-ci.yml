@@ -63,6 +63,12 @@ jobs:
         run: |
           curl --fail http://localhost:8000/health
           curl --fail http://localhost:8000/api/v1/projects
+          PROJECT_JSON=$(curl --fail --silent -X POST http://localhost:8000/api/v1/projects \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"CI Smoke Project","description":"Created by Docker smoke test"}')
+          echo "$PROJECT_JSON"
+          echo "$PROJECT_JSON" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["name"]=="CI Smoke Project"; assert isinstance(data["id"], int)'
+          curl --fail --silent http://localhost:8000/api/v1/projects | python3 -c 'import json,sys; data=json.load(sys.stdin); assert any(p["name"]=="CI Smoke Project" for p in data)'
           docker compose exec -T api alembic current
       - name: Show container logs on failure
         if: failure()
