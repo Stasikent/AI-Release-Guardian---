@@ -10,45 +10,63 @@ from app.services.scanner import scan_page
 from app.analyzers.diff import compare_objects
 from app.risk.engine import calculate_risk
 
+
 def create_project(db: Session, data: ProjectCreate) -> Project:
     project = Project(name=data.name, description=data.description)
     db.add(project)
-    db.commit()
-    db.refresh(project)
+    try:
+        db.commit()
+        db.refresh(project)
+    except Exception:
+        db.rollback()
+        raise
     return project
+
 
 def list_projects(db: Session) -> list[Project]:
     return list(db.scalars(select(Project).order_by(Project.created_at.desc())))
 
+
 def get_project(db: Session, project_id: int) -> Project | None:
     return db.get(Project, project_id)
 
+
 async def run_project_scan(db: Session, project: Project, data: ProjectScanRequest) -> Scan:
+    # Browser work happens before opening the database mutation. A failed scan
+    # must never archive an existing baseline.
     result = await scan_page(ScanRequest(
         url=data.url, wait_until=data.wait_until, timeout_ms=data.timeout_ms
     ))
-    if data.role == "baseline":
-        for previous in db.scalars(
-            select(Scan).where(Scan.project_id == project.id, Scan.role == "baseline")
-        ):
-            previous.role = "history"
-    scan = Scan(
-        project_id=project.id,
-        url=result.url,
-        title=result.title,
-        role=data.role,
-        total_testable_objects=result.total_testable_objects,
-        payload_json=result.model_dump_json(),
-    )
-    db.add(scan)
-    db.commit()
-    db.refresh(scan)
-    return scan
+
+    try:
+        if data.role == "baseline":
+            for previous in db.scalars(
+                select(Scan).where(Scan.project_id == project.id, Scan.role == "baseline")
+            ):
+                previous.role = "history"
+
+        scan = Scan(
+            project_id=project.id,
+            url=result.url,
+            title=result.title,
+            role=data.role,
+            total_testable_objects=result.total_testable_objects,
+            payload_json=result.model_dump_json(),
+        )
+        db.add(scan)
+        db.commit()
+        db.refresh(scan)
+        return scan
+    except Exception:
+        db.rollback()
+        raise
+
 
 def list_scans(db: Session, project_id: int) -> list[Scan]:
     return list(db.scalars(
         select(Scan).where(Scan.project_id == project_id).order_by(Scan.created_at.desc())
     ))
+
 
 def compare_latest(db: Session, project_id: int) -> CompareResult | None:
     baseline = db.scalars(
