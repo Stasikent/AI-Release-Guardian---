@@ -1,9 +1,9 @@
 from app.analyzers.diff import compare_objects
-from app.models.scan import TestableObject
+from app.models.scan import TestableObject as DomObject
 from app.risk.engine import calculate_risk
 
-def obj(index: int, kind: str, id_: str, text: str = "") -> TestableObject:
-    return TestableObject(
+def obj(index: int, kind: str, id_: str, text: str = "") -> DomObject:
+    return DomObject(
         index=index, object_type=kind, tag_name=kind,
         id=id_, text=text, locator=f"#{id_}", display_name=id_,
     )
