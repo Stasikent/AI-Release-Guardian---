@@ -10,6 +10,7 @@ from app.services.scanner import scan_page
 from app.analyzers.diff import compare_objects
 from app.risk.engine import calculate_risk
 from app.risk.focus import build_regression_focus
+from app.risk.tests import build_regression_tests
 
 
 def create_project(db: Session, data: ProjectCreate) -> Project:
@@ -84,4 +85,5 @@ def compare_latest(db: Session, project_id: int) -> CompareResult | None:
     new = ScanResult.model_validate_json(current.payload_json)
     diff = compare_objects(old.testable_objects, new.testable_objects)
     risk=calculate_risk(diff)
-    return CompareResult(diff=diff, risk=risk, regression_focus=build_regression_focus(diff))
+    focus=build_regression_focus(diff)
+    return CompareResult(diff=diff, risk=risk, regression_focus=focus, regression_tests=build_regression_tests(focus))
