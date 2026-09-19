@@ -3,7 +3,8 @@ from collections import Counter
 
 from app.models.knowledge import RetrievedContext
 from app.rag.chunking import chunk_text
-from app.rag.embeddings import HashingEmbedder, cosine_similarity
+from app.rag.embeddings import cosine_similarity
+from app.rag.sentence_transformer import build_embedder
 from app.rag.retriever import tokens
 
 
@@ -22,7 +23,7 @@ def _coverage(query: list[str], document: list[str]) -> float:
 
 
 def hybrid_retrieve(query: str, documents: list, limit: int = 5, embedder=None) -> list[RetrievedContext]:
-    embedder = embedder or HashingEmbedder()
+    embedder = embedder or build_embedder()
     q = tokens(query)
     qc = Counter(q)
     raw_candidates = []
