@@ -4,11 +4,11 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db import Base
 from app.models.project import ProjectCreate, ProjectScanRequest
-from app.models.scan import ScanResult, TestableObject
+from app.models.scan import ScanResult, TestableObject as DomObject
 from app.services.projects import compare_latest, create_project, run_project_scan
 
 
-def _result(*objects: TestableObject) -> ScanResult:
+def _result(*objects: DomObject) -> ScanResult:
     counts: dict[str, int] = {}
     for obj in objects:
         counts[obj.object_type] = counts.get(obj.object_type, 0) + 1
@@ -24,12 +24,12 @@ def _result(*objects: TestableObject) -> ScanResult:
 @pytest.mark.asyncio
 async def test_project_baseline_current_compare_risk(monkeypatch) -> None:
     baseline = _result(
-        TestableObject(index=0, object_type="button", tag_name="button", id="save", text="Save", locator="#save"),
-        TestableObject(index=1, object_type="input", tag_name="input", id="email", type="email", required=False, locator="#email"),
+        DomObject(index=0, object_type="button", tag_name="button", id="save", text="Save", locator="#save"),
+        DomObject(index=1, object_type="input", tag_name="input", id="email", type="email", required=False, locator="#email"),
     )
     current = _result(
-        TestableObject(index=0, object_type="button", tag_name="button", id="save", text="Save", disabled=True, locator="#save"),
-        TestableObject(index=1, object_type="input", tag_name="input", id="email", type="email", required=True, locator="#email"),
+        DomObject(index=0, object_type="button", tag_name="button", id="save", text="Save", disabled=True, locator="#save"),
+        DomObject(index=1, object_type="input", tag_name="input", id="email", type="email", required=True, locator="#email"),
     )
     responses = iter([baseline, current])
 
