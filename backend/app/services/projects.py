@@ -10,6 +10,7 @@ from app.services.scanner import scan_page
 from app.analyzers.diff import compare_objects
 from app.risk.engine import calculate_risk
 from app.risk.focus import build_regression_focus
+from app.risk.regression_tests import build_regression_tests
 from app.risk.tests import build_regression_tests
 
 
