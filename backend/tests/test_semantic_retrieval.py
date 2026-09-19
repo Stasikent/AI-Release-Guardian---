@@ -34,3 +34,26 @@ def test_hybrid_retrieval_can_use_injected_semantic_signal():
     assert result[0].document_id == 1
     assert len(result) == 1
     assert result[0].score > 0
+
+
+def test_hybrid_retrieval_ranks_semantically_matching_document_first():
+    docs = [
+        SimpleNamespace(id=1, title="Checkout", source="spec", content="Purchase flow must remain available."),
+        SimpleNamespace(id=2, title="Authentication", source="spec", content="Login requires email and password."),
+    ]
+
+    class BroadSignalEmbedder:
+        def encode(self, texts: list[str]) -> list[list[float]]:
+            vectors = []
+            for index, text in enumerate(texts):
+                lowered = text.lower()
+                if index == 0 or "checkout" in lowered or "purchase" in lowered:
+                    vectors.append([1.0, 0.0])
+                else:
+                    vectors.append([0.25, 0.75])
+            return vectors
+
+    result = hybrid_retrieve("checkout regression", docs, limit=2, embedder=BroadSignalEmbedder())
+    assert len(result) == 2
+    assert result[0].document_id == 1
+    assert result[0].score > result[1].score
