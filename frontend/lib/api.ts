@@ -6,10 +6,10 @@ export type RiskFactor = { code:string; description:string; weight:number; count
 export type TestableObject = { object_type:string; tag_name:string; id?:string|null; name?:string|null; locator:string; display_name?:string|null; [key:string]:unknown };
 export type ElementChange = { fingerprint:string; before:TestableObject; after:TestableObject; changed_fields:string[]; risk_points:number; field_risk_points:Record<string,number> };
 export type RegressionFocusItem = { priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; target:string; locator:string; reason:string; risk_points:number; suggested_check:string };
-export type RegressionTestCase = { id:string; priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; locator:string; preconditions:string[]; steps:string[]; expected_results:string[]; source:"deterministic"; risk_points:number };\nexport type CompareResult = {
+export type RegressionTestCase = { id:string; priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; locator:string; preconditions:string[]; steps:string[]; expected_results:string[]; source:"deterministic"; risk_points:number };\nexport type RegressionTestCase = { id:string; priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; target:string; locator:string; preconditions:string[]; steps:string[]; expected_results:string[]; source:"deterministic"; risk_points:number };\nexport type CompareResult = {
   diff:{ added:TestableObject[]; removed:TestableObject[]; changed:ElementChange[]; unchanged_count:number };
   risk:{ score:number; raw_score:number; level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; factors:RiskFactor[]; summary:string };
-  regression_focus:RegressionFocusItem[];\n  regression_tests:RegressionTestCase[];
+  regression_focus:RegressionFocusItem[];\n  regression_tests:RegressionTestCase[];\n  regression_tests:RegressionTestCase[];
 };
 
 async function request<T>(path:string, init?:RequestInit):Promise<T>{
