@@ -2,9 +2,9 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000
 
 export type Project = { id:number; name:string; description:string; created_at:string };
 export type Scan = { id:number; project_id:number; url:string; title:string; role:string; total_testable_objects:number; created_at:string };
-export type RiskFactor = { code:string; description:string; weight:number; count:number; points:number };
+export type RiskFactor = { code:string; description:string; weight:number; count:number; points:number };\nexport type TestableObject = { object_type:string; tag_name:string; id?:string|null; name?:string|null; locator:string; display_name?:string|null; [key:string]:unknown };\nexport type ElementChange = { fingerprint:string; before:TestableObject; after:TestableObject; changed_fields:string[] };
 export type CompareResult = {
-  diff:{ added:unknown[]; removed:unknown[]; changed:unknown[]; unchanged_count:number };
+  diff:{ added:TestableObject[]; removed:TestableObject[]; changed:ElementChange[]; unchanged_count:number };
   risk:{ score:number; raw_score:number; level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; factors:RiskFactor[]; summary:string };
 };
 
