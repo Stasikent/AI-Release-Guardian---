@@ -3,6 +3,7 @@ from app.analyzers.diff import compare_objects
 from app.models.diff import CompareRequest, CompareResult
 from app.risk.engine import calculate_risk
 from app.risk.focus import build_regression_focus
+from app.risk.regression_tests import build_regression_tests
 from app.risk.tests import build_regression_tests
 
 router = APIRouter(prefix="/api/v1/compare", tags=["compare"])
