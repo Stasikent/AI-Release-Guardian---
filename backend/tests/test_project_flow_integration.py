@@ -94,3 +94,40 @@ async def test_new_baseline_archives_previous_baseline(monkeypatch) -> None:
         assert by_id[replacement.id].role == "baseline"
         assert sum(scan.role == "baseline" for scan in scans) == 1
         assert sum(scan.role == "history" for scan in scans) == 1
+
+
+@pytest.mark.asyncio
+async def test_failed_scan_does_not_archive_existing_baseline(monkeypatch) -> None:
+    baseline = _result(
+        DomObject(index=0, object_type="button", tag_name="button", id="save", text="Save", locator="#save"),
+    )
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+
+    async def successful_scan(_request):
+        return baseline
+
+    monkeypatch.setattr("app.services.projects.scan_page", successful_scan)
+
+    with Session() as db:
+        project = create_project(db, ProjectCreate(name="Failed Scan Demo"))
+        original = await run_project_scan(
+            db, project, ProjectScanRequest(url="https://example.com", role="baseline")
+        )
+
+        async def failed_scan(_request):
+            raise RuntimeError("browser failed")
+
+        monkeypatch.setattr("app.services.projects.scan_page", failed_scan)
+
+        with pytest.raises(RuntimeError, match="browser failed"):
+            await run_project_scan(
+                db, project, ProjectScanRequest(url="https://example.com", role="baseline")
+            )
+
+        scans = list_scans(db, project.id)
+        assert len(scans) == 1
+        assert scans[0].id == original.id
+        assert scans[0].role == "baseline"
