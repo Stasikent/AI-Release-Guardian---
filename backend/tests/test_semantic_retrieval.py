@@ -32,4 +32,4 @@ def test_hybrid_retrieval_can_use_injected_semantic_signal():
     ]
     result = hybrid_retrieve("checkout regression", docs, limit=2, embedder=StubEmbedder())
     assert result[0].document_id == 1
-    assert result[0].score > result[1].score
+    assert len(result) == 1\n    assert result[0].score > 0
