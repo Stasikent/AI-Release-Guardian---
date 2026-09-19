@@ -21,7 +21,7 @@ async def test_retries_without_response_format_when_provider_rejects_json_mode()
         requests.append(payload)
         if "response_format" in payload:
             return httpx.Response(400, json={"error": {"message": "response_format is not supported"}})
-        return httpx.Response(200, json={"choices": [{"message": {"content": """{"release_summary":"ok","likely_impacts":[],"regression_focus":[],"suggested_tests":[],"confidence":0.8,"limitations":[]}"""}}]})
+        return httpx.Response(200, json={"choices": [{"message": {"content": """{"release_summary":"ok","likely_impacts":[],"regression_focus":[],"suggested_tests":[],"confidence":"high","limitations":[]}"""}}]})
 
     provider = OpenAICompatibleProvider(
         base_url="https://example.test/v1",
