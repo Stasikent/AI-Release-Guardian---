@@ -44,6 +44,18 @@ class RegressionFocusItem(BaseModel):
     risk_points: int
     suggested_check: str
 
+class RegressionTestCase(BaseModel):
+    id: str
+    priority: int
+    severity: Literal["LOW","MEDIUM","HIGH","CRITICAL"]
+    title: str
+    locator: str
+    preconditions: list[str]
+    steps: list[str]
+    expected_results: list[str]
+    source: Literal["deterministic"] = "deterministic"
+    risk_points: int
+
 class CompareRequest(BaseModel):
     baseline: list[TestableObject]
     current: list[TestableObject]
@@ -51,4 +63,4 @@ class CompareRequest(BaseModel):
 class CompareResult(BaseModel):
     diff: DiffReport
     risk: RiskReport
-    regression_focus: list[RegressionFocusItem] = Field(default_factory=list)
+    regression_focus: list[RegressionFocusItem] = Field(default_factory=list)\n    regression_tests: list[RegressionTestCase] = Field(default_factory=list)
