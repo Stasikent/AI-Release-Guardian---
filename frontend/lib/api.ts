@@ -34,3 +34,5 @@ export type AIAnalysisResponse={
 export async function analyzeProject(id:number):Promise<AIAnalysisResponse>{
  return request<AIAnalysisResponse>(`/api/v1/projects/${id}/ai-analysis`,{method:"POST"});
 }
+
+export function regressionExportUrl(id:number,format:"json"|"markdown"|"playwright"):string{return `${API_URL}/api/v1/projects/${id}/regression-tests/export?format=${format}`;}
