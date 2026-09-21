@@ -102,6 +102,8 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert "regression.generated.spec.ts" in playwright_export.headers["content-disposition"]
             assert "import { test, expect } from '@playwright/test';" in playwright_export.text
             assert "REG-001" in playwright_export.text
+            assert "toBeDisabled()" in playwright_export.text
+            assert "toHaveJSProperty('required', true)" in playwright_export.text
 
             invalid_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=xml")
             assert invalid_export.status_code == 400
