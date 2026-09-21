@@ -1,6 +1,7 @@
 from app.analyzers.diff import compare_objects
 from app.analyzers.dom import extract_testable_objects
 from app.risk.engine import calculate_risk
+from app.models.scan import TestableObject
 
 def risk(a,b):
     return calculate_risk(compare_objects(extract_testable_objects(a),extract_testable_objects(b)))
