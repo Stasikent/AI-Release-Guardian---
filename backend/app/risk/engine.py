@@ -16,6 +16,9 @@ def calculate_risk(diff:DiffReport)->RiskReport:
     added_interactive=sum(o.object_type in INTERACTIVE_TYPES for o in diff.added)
     removed_other=len(diff.removed)-removed_interactive
     field_counts=Counter(field for change in diff.changed for field in change.changed_fields)
+    for change in diff.changed:
+        change.field_risk_points = {field: FIELD_WEIGHTS.get(field, 3) for field in change.changed_fields}
+        change.risk_points = sum(change.field_risk_points.values())
     factors=[
       _factor("removed_interactive","Interactive elements removed",12,removed_interactive),
       _factor("added_interactive","Interactive elements added",4,added_interactive),
