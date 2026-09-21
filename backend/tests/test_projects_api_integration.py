@@ -83,6 +83,28 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             factor_codes = {factor["code"] for factor in payload["risk"]["factors"]}
             assert any("disabled" in code for code in factor_codes)
             assert any("required" in code for code in factor_codes)
+            assert len(payload["regression_focus"]) == 2
+            assert len(payload["regression_tests"]) == 2
+            assert payload["regression_tests"][0]["id"] == "REG-001"
+
+            json_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=json")
+            assert json_export.status_code == 200
+            assert "regression-tests.json" in json_export.headers["content-disposition"]
+            assert len(json_export.json()) == 2
+
+            markdown_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=markdown")
+            assert markdown_export.status_code == 200
+            assert "# AI Release Guardian" in markdown_export.text
+            assert "REG-001" in markdown_export.text
+
+            playwright_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=playwright")
+            assert playwright_export.status_code == 200
+            assert "regression.generated.spec.ts" in playwright_export.headers["content-disposition"]
+            assert "import { test, expect } from '@playwright/test';" in playwright_export.text
+            assert "REG-001" in playwright_export.text
+
+            invalid_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=xml")
+            assert invalid_export.status_code == 400
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
