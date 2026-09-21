@@ -38,7 +38,7 @@ def build_regression_tests(items:list[RegressionFocusItem])->list[RegressionTest
         steps,expected=_steps(item)
         tests.append(RegressionTestCase(
             id=f"RG-{item.priority:03d}",priority=item.priority,severity=item.severity,
-            title=f"Regression check: {item.target}",locator=item.locator,
+            title=f"Regression check: {item.target}",target=item.target,locator=item.locator,
             preconditions=["Target environment is available.","Baseline/current comparison has completed."],
             steps=steps,expected_results=expected,risk_points=item.risk_points,
         ))
