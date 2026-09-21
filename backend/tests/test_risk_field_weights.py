@@ -1,7 +1,7 @@
 from app.analyzers.diff import compare_objects
 from app.analyzers.dom import extract_testable_objects
 from app.risk.engine import calculate_risk
-from app.models.scan import TestableObject
+from app.models.scan import TestableObject as DOMObject
 
 def risk(a,b):
     return calculate_risk(compare_objects(extract_testable_objects(a),extract_testable_objects(b)))
@@ -24,8 +24,8 @@ def test_href_change_has_specific_reason():
 
 
 def test_changed_element_exposes_field_and_total_risk_points():
-    before = TestableObject(index=0, object_type="button", tag_name="button", id="save", text="Save", disabled=False, locator="#save")
-    after = TestableObject(index=0, object_type="button", tag_name="button", id="save", text="Save now", disabled=True, locator="#save")
+    before = DOMObject(index=0, object_type="button", tag_name="button", id="save", text="Save", disabled=False, locator="#save")
+    after = DOMObject(index=0, object_type="button", tag_name="button", id="save", text="Save now", disabled=True, locator="#save")
     diff = compare_objects([before], [after])
 
     report = calculate_risk(diff)
