@@ -1,4 +1,6 @@
-import json\n\nfrom fastapi import APIRouter, Depends, HTTPException, Response, status
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
