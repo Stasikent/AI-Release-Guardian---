@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlsplit
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,13 +14,20 @@ from app.risk.focus import build_regression_focus
 from app.risk.regression_tests import build_regression_tests
 
 
-def latest_comparison_scans(db: Session, project_id: int) -> tuple[Scan | None, Scan | None]:
+def _route(url: str, explicit: str | None = None) -> str:
+    if explicit:
+        return explicit if explicit.startswith("/") else f"/{explicit}"
+    parsed = urlsplit(url)
+    return parsed.path or "/"
+
+
+def latest_comparison_scans(db: Session, project_id: int, route: str | None = None) -> tuple[Scan | None, Scan | None]:
     baseline = db.scalars(
-        select(Scan).where(Scan.project_id == project_id, Scan.role == "baseline")
+        select(Scan).where(Scan.project_id == project_id, Scan.role == "baseline", *((Scan.route == route,) if route else ()))
         .order_by(Scan.created_at.desc()).limit(1)
     ).first()
     current = db.scalars(
-        select(Scan).where(Scan.project_id == project_id, Scan.role == "current")
+        select(Scan).where(Scan.project_id == project_id, Scan.role == "current", *((Scan.route == route,) if route else ()))
         .order_by(Scan.created_at.desc()).limit(1)
     ).first()
     return baseline, current
@@ -61,6 +69,7 @@ async def run_project_scan(db: Session, project: Project, data: ProjectScanReque
         scan = Scan(
             project_id=project.id,
             url=result.url,
+            route=_route(result.url, data.route),
             title=result.title,
             role=data.role,
             total_testable_objects=result.total_testable_objects,
@@ -81,8 +90,8 @@ def list_scans(db: Session, project_id: int) -> list[Scan]:
     ))
 
 
-def compare_latest(db: Session, project_id: int) -> CompareResult | None:
-    baseline, current = latest_comparison_scans(db, project_id)
+def compare_latest(db: Session, project_id: int, route: str | None = None) -> CompareResult | None:
+    baseline, current = latest_comparison_scans(db, project_id, route)
     if not baseline or not current:
         return None
     old = ScanResult.model_validate_json(baseline.payload_json)
