@@ -64,12 +64,13 @@ def _field_assertions(change) -> list[str]:
                 lines.append(f"  // TODO: verify changed field {field} = {_js(value)}.")
     return lines
 
-def _playwright(result: CompareResult) -> str:
+def _playwright(result: CompareResult, base_url: str | None = None) -> str:
     tests = result.regression_tests
     changed_by_locator = {change.after.locator: change for change in result.diff.changed}
     removed = {item.locator for item in result.diff.removed}
     added = {item.locator for item in result.diff.added}
 
+    start_url = base_url or "/"
     lines = [
         "import { test, expect } from '@playwright/test';",
         "",
@@ -83,8 +84,7 @@ def _playwright(result: CompareResult) -> str:
         locator = json.dumps(item.locator)
         lines += [
             f"test({title}, async ({{ page }}) => {{",
-            "  // TODO: replace with the route/authentication required by this project.",
-            "  await page.goto('/');",
+            f"  await page.goto({_js(start_url)});",
             f"  const target = page.locator({locator});",
         ]
         if item.locator in removed:
@@ -141,7 +141,8 @@ def export_regression_tests(project_id: int, format: str = "json", db: Session =
         body=_markdown(result.regression_tests)
         media_type="text/markdown"; filename="regression-tests.md"
     elif fmt=="playwright":
-        body=_playwright(result)
+        project=get_project(db, project_id)
+        body=_playwright(result, project.base_url if project else None)
         media_type="text/typescript"; filename="regression.generated.spec.ts"
     else:
         raise HTTPException(status_code=400, detail="format must be json, markdown, or playwright")
