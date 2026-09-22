@@ -14,7 +14,7 @@ from app.risk.regression_tests import build_regression_tests
 
 
 def create_project(db: Session, data: ProjectCreate) -> Project:
-    project = Project(name=data.name, description=data.description)
+    project = Project(name=data.name, description=data.description, base_url=str(data.base_url) if data.base_url else None)
     db.add(project)
     try:
         db.commit()
