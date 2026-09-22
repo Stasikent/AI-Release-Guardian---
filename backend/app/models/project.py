@@ -16,6 +16,7 @@ class ProjectRead(BaseModel):
 
 class ProjectScanRequest(BaseModel):
     url: HttpUrl
+    route: str | None = Field(default=None, max_length=500)
     role: str = Field(default="current", pattern="^(baseline|current)$")
     wait_until: str = Field(default="networkidle", pattern="^(load|domcontentloaded|networkidle|commit)$")
     timeout_ms: int = Field(default=30000, ge=1000, le=120000)
@@ -25,6 +26,7 @@ class StoredScanRead(BaseModel):
     id: int
     project_id: int
     url: str
+    route: str | None = None
     title: str
     role: str
     total_testable_objects: int
