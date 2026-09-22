@@ -102,7 +102,8 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert "regression.generated.spec.ts" in playwright_export.headers["content-disposition"]
             assert "import { test, expect } from '@playwright/test';" in playwright_export.text
             assert "REG-001" in playwright_export.text
-            assert 'page.goto("https://shop.example.com/app")' in playwright_export.text
+            assert 'page.goto("https://example.com/current")' in playwright_export.text
+            assert 'page.goto("https://shop.example.com/app")' not in playwright_export.text
             assert "toBeDisabled()" in playwright_export.text
             assert "toHaveJSProperty('required', true)" in playwright_export.text
 
