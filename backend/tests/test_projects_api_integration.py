@@ -79,6 +79,15 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert routes_response.status_code == 200
             assert routes_response.json() == ["/current"]
 
+            overview_response = client.get(f"/api/v1/projects/{project_id}/release-overview")
+            assert overview_response.status_code == 200
+            overview = overview_response.json()
+            assert overview["project_id"] == project_id
+            assert overview["comparable_routes"] == 1
+            assert overview["incomplete_routes"] == 0
+            assert overview["routes"][0]["route"] == "/current"
+            assert overview["routes"][0]["risk_score"] > 0
+
             comparison = client.get(f"/api/v1/projects/{project_id}/compare?route=/current")
             assert comparison.status_code == 200
             payload = comparison.json()
