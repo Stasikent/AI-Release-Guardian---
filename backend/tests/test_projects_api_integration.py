@@ -73,8 +73,9 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             )
             assert current_response.status_code == 201
             assert current_response.json()["role"] == "current"
+            assert current_response.json()["route"] == "/current"
 
-            comparison = client.get(f"/api/v1/projects/{project_id}/compare")
+            comparison = client.get(f"/api/v1/projects/{project_id}/compare?route=/current")
             assert comparison.status_code == 200
             payload = comparison.json()
             assert len(payload["diff"]["changed"]) == 2
@@ -88,17 +89,17 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert len(payload["regression_tests"]) == 2
             assert payload["regression_tests"][0]["id"] == "REG-001"
 
-            json_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=json")
+            json_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=json&route=/current")
             assert json_export.status_code == 200
             assert "regression-tests.json" in json_export.headers["content-disposition"]
             assert len(json_export.json()) == 2
 
-            markdown_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=markdown")
+            markdown_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=markdown&route=/current")
             assert markdown_export.status_code == 200
             assert "# AI Release Guardian" in markdown_export.text
             assert "REG-001" in markdown_export.text
 
-            playwright_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=playwright")
+            playwright_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=playwright&route=/current")
             assert playwright_export.status_code == 200
             assert "regression.generated.spec.ts" in playwright_export.headers["content-disposition"]
             assert "import { test, expect } from '@playwright/test';" in playwright_export.text
