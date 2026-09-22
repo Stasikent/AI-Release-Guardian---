@@ -75,6 +75,10 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert current_response.json()["role"] == "current"
             assert current_response.json()["route"] == "/current"
 
+            routes_response = client.get(f"/api/v1/projects/{project_id}/routes")
+            assert routes_response.status_code == 200
+            assert routes_response.json() == ["/current"]
+
             comparison = client.get(f"/api/v1/projects/{project_id}/compare?route=/current")
             assert comparison.status_code == 200
             payload = comparison.json()
