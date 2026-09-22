@@ -8,7 +8,7 @@ from app.db import get_db
 from app.models.diff import CompareResult, RegressionTestCase
 from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, StoredScanRead
 from app.services.projects import (
-    compare_latest, create_project, get_project, list_projects, list_scans, run_project_scan,
+    compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_scans, run_project_scan,
 )
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -64,13 +64,12 @@ def _field_assertions(change) -> list[str]:
                 lines.append(f"  // TODO: verify changed field {field} = {_js(value)}.")
     return lines
 
-def _playwright(result: CompareResult, base_url: str | None = None) -> str:
+def _playwright(result: CompareResult, start_url: str = "/") -> str:
     tests = result.regression_tests
     changed_by_locator = {change.after.locator: change for change in result.diff.changed}
     removed = {item.locator for item in result.diff.removed}
     added = {item.locator for item in result.diff.added}
 
-    start_url = base_url or "/"
     lines = [
         "import { test, expect } from '@playwright/test';",
         "",
@@ -142,7 +141,9 @@ def export_regression_tests(project_id: int, format: str = "json", db: Session =
         media_type="text/markdown"; filename="regression-tests.md"
     elif fmt=="playwright":
         project=get_project(db, project_id)
-        body=_playwright(result, project.base_url if project else None)
+        _, current_scan = latest_comparison_scans(db, project_id)
+        start_url = current_scan.url if current_scan else (project.base_url if project and project.base_url else "/")
+        body=_playwright(result, start_url)
         media_type="text/typescript"; filename="regression.generated.spec.ts"
     else:
         raise HTTPException(status_code=400, detail="format must be json, markdown, or playwright")
