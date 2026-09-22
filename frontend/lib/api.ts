@@ -7,6 +7,8 @@ export type TestableObject = { object_type:string; tag_name:string; id?:string|n
 export type ElementChange = { fingerprint:string; before:TestableObject; after:TestableObject; changed_fields:string[]; risk_points:number; field_risk_points:Record<string,number> };
 export type RegressionFocusItem = { priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; target:string; locator:string; reason:string; risk_points:number; suggested_check:string };
 export type RegressionTestCase = { id:string; priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; target:string; locator:string; preconditions:string[]; steps:string[]; expected_results:string[]; source:"deterministic"; risk_points:number };
+export type RouteReleaseSummary = { route:string; comparable:boolean; baseline_scan_id:number|null; current_scan_id:number|null; risk_score:number|null; risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"|null; added_count:number; removed_count:number; changed_count:number; regression_tests_count:number };
+export type ProjectReleaseOverview = { project_id:number; routes:RouteReleaseSummary[]; comparable_routes:number; incomplete_routes:number; overall_risk_score:number; overall_risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL" };
 export type CompareResult = {
   diff:{ added:TestableObject[]; removed:TestableObject[]; changed:ElementChange[]; unchanged_count:number };
   risk:{ score:number; raw_score:number; level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; factors:RiskFactor[]; summary:string };
@@ -24,6 +26,7 @@ export const api={
   createProject:(name:string,description:string,base_url:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description,base_url:base_url||null})}),
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
   routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),
+  releaseOverview:(id:number)=>request<ProjectReleaseOverview>(`/api/v1/projects/${id}/release-overview`),
   scan:(id:number,url:string,role:"baseline"|"current")=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role})}),
   compare:(id:number,route?:string)=>request<CompareResult>(`/api/v1/projects/${id}/compare${route?`?route=${encodeURIComponent(route)}`:""}`),
 };
