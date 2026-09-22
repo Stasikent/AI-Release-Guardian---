@@ -1,6 +1,6 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-export type Project = { id:number; name:string; description:string; created_at:string };
+export type Project = { id:number; name:string; description:string; base_url:string|null; created_at:string };
 export type Scan = { id:number; project_id:number; url:string; title:string; role:string; total_testable_objects:number; created_at:string };
 export type RiskFactor = { code:string; description:string; weight:number; count:number; points:number };
 export type TestableObject = { object_type:string; tag_name:string; id?:string|null; name?:string|null; locator:string; display_name?:string|null; [key:string]:unknown };
@@ -21,7 +21,7 @@ async function request<T>(path:string, init?:RequestInit):Promise<T>{
 }
 export const api={
   projects:()=>request<Project[]>("/api/v1/projects"),
-  createProject:(name:string,description:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description})}),
+  createProject:(name:string,description:string,base_url:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description,base_url:base_url||null})}),
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
   scan:(id:number,url:string,role:"baseline"|"current")=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role})}),
   compare:(id:number)=>request<CompareResult>(`/api/v1/projects/${id}/compare`),
