@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.db_models import Project, Scan
-from app.models.diff import CompareResult
+from app.models.diff import CompareResult, ProjectReleaseOverview, RouteReleaseSummary
 from app.models.project import ProjectCreate, ProjectScanRequest
 from app.models.scan import ScanRequest, ScanResult
 from app.services.scanner import scan_page
@@ -107,3 +107,41 @@ def compare_latest(db: Session, project_id: int, route: str | None = None) -> Co
     risk=calculate_risk(diff)
     focus=build_regression_focus(diff)
     return CompareResult(diff=diff, risk=risk, regression_focus=focus, regression_tests=build_regression_tests(focus))
+
+
+def build_release_overview(db: Session, project_id: int) -> ProjectReleaseOverview:
+    summaries: list[RouteReleaseSummary] = []
+    for route in list_routes(db, project_id):
+        baseline, current = latest_comparison_scans(db, project_id, route)
+        if not baseline or not current:
+            summaries.append(RouteReleaseSummary(
+                route=route,
+                comparable=False,
+                baseline_scan_id=baseline.id if baseline else None,
+                current_scan_id=current.id if current else None,
+            ))
+            continue
+        result = compare_latest(db, project_id, route)
+        summaries.append(RouteReleaseSummary(
+            route=route,
+            comparable=True,
+            baseline_scan_id=baseline.id,
+            current_scan_id=current.id,
+            risk_score=result.risk.score,
+            risk_level=result.risk.level,
+            added_count=len(result.diff.added),
+            removed_count=len(result.diff.removed),
+            changed_count=len(result.diff.changed),
+            regression_tests_count=len(result.regression_tests),
+        ))
+    comparable = [item for item in summaries if item.comparable and item.risk_score is not None]
+    overall = max((item.risk_score for item in comparable), default=0)
+    level = "CRITICAL" if overall >= 75 else "HIGH" if overall >= 50 else "MEDIUM" if overall >= 25 else "LOW"
+    return ProjectReleaseOverview(
+        project_id=project_id,
+        routes=summaries,
+        comparable_routes=len(comparable),
+        incomplete_routes=len(summaries) - len(comparable),
+        overall_risk_score=overall,
+        overall_risk_level=level,
+    )
