@@ -13,7 +13,7 @@ def _result(*objects: DomObject) -> ScanResult:
     for obj in objects:
         counts[obj.object_type] = counts.get(obj.object_type, 0) + 1
     return ScanResult(
-        url="https://example.com",
+        url="https://example.com/current",
         title="API Integration Demo",
         total_testable_objects=len(objects),
         object_counts=counts,
@@ -54,9 +54,10 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
         with TestClient(app) as client:
             created = client.post(
                 "/api/v1/projects",
-                json={"name": "HTTP Integration Demo", "description": "End-to-end API flow"},
+                json={"name": "HTTP Integration Demo", "description": "End-to-end API flow", "base_url": "https://shop.example.com/app"},
             )
             assert created.status_code == 201
+            assert created.json()["base_url"] == "https://shop.example.com/app"
             project_id = created.json()["id"]
 
             baseline_response = client.post(
