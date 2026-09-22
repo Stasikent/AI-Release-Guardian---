@@ -13,10 +13,10 @@ from app.services.projects import (
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
-def _comparison_or_409(db: Session, project_id: int) -> CompareResult:
+def _comparison_or_409(db: Session, project_id: int, route: str | None = None) -> CompareResult:
     if not get_project(db, project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    result = compare_latest(db, project_id)
+    result = compare_latest(db, project_id, route)
     if result is None:
         raise HTTPException(status_code=409, detail="Baseline and current scans are required")
     return result
@@ -130,8 +130,8 @@ def scans(project_id: int, db: Session = Depends(get_db)) -> list[StoredScanRead
     return list_scans(db, project_id)
 
 @router.get("/{project_id}/regression-tests/export")
-def export_regression_tests(project_id: int, format: str = "json", db: Session = Depends(get_db)) -> Response:
-    result=_comparison_or_409(db, project_id)
+def export_regression_tests(project_id: int, format: str = "json", route: str | None = None, db: Session = Depends(get_db)) -> Response:
+    result=_comparison_or_409(db, project_id, route)
     fmt=format.lower()
     if fmt=="json":
         body=json.dumps([x.model_dump() for x in result.regression_tests],indent=2)
@@ -141,7 +141,7 @@ def export_regression_tests(project_id: int, format: str = "json", db: Session =
         media_type="text/markdown"; filename="regression-tests.md"
     elif fmt=="playwright":
         project=get_project(db, project_id)
-        _, current_scan = latest_comparison_scans(db, project_id)
+        _, current_scan = latest_comparison_scans(db, project_id, route)
         start_url = current_scan.url if current_scan else (project.base_url if project and project.base_url else "/")
         body=_playwright(result, start_url)
         media_type="text/typescript"; filename="regression.generated.spec.ts"
@@ -150,10 +150,10 @@ def export_regression_tests(project_id: int, format: str = "json", db: Session =
     return Response(content=body,media_type=media_type,headers={"Content-Disposition":f'attachment; filename="{filename}"'})
 
 @router.get("/{project_id}/compare", response_model=CompareResult)
-def compare(project_id: int, db: Session = Depends(get_db)) -> CompareResult:
+def compare(project_id: int, route: str | None = None, db: Session = Depends(get_db)) -> CompareResult:
     if not get_project(db, project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    result = compare_latest(db, project_id)
+    result = compare_latest(db, project_id, route)
     if result is None:
         raise HTTPException(status_code=409, detail="Baseline and current scans are required")
     return result
