@@ -66,3 +66,24 @@ class CompareResult(BaseModel):
     risk: RiskReport
     regression_focus: list[RegressionFocusItem] = Field(default_factory=list)
     regression_tests: list[RegressionTestCase] = Field(default_factory=list)
+
+
+class RouteReleaseSummary(BaseModel):
+    route: str
+    comparable: bool
+    baseline_scan_id: int | None = None
+    current_scan_id: int | None = None
+    risk_score: int | None = None
+    risk_level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"] | None = None
+    added_count: int = 0
+    removed_count: int = 0
+    changed_count: int = 0
+    regression_tests_count: int = 0
+
+class ProjectReleaseOverview(BaseModel):
+    project_id: int
+    routes: list[RouteReleaseSummary] = Field(default_factory=list)
+    comparable_routes: int = 0
+    incomplete_routes: int = 0
+    overall_risk_score: int = 0
+    overall_risk_level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"] = "LOW"
