@@ -13,6 +13,11 @@ from app.risk.focus import build_regression_focus
 from app.risk.regression_tests import build_regression_tests
 
 
+def latest_comparison_scans(db: Session, project_id: int) -> tuple[Scan | None, Scan | None]:
+    baseline, current = latest_comparison_scans(db, project_id)
+    return baseline, current
+
+
 def create_project(db: Session, data: ProjectCreate) -> Project:
     project = Project(name=data.name, description=data.description, base_url=str(data.base_url) if data.base_url else None)
     db.add(project)
