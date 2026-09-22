@@ -1,7 +1,7 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type Project = { id:number; name:string; description:string; base_url:string|null; created_at:string };
-export type Scan = { id:number; project_id:number; url:string; title:string; role:string; total_testable_objects:number; created_at:string };
+export type Scan = { id:number; project_id:number; url:string; route:string|null; title:string; role:string; total_testable_objects:number; created_at:string };
 export type RiskFactor = { code:string; description:string; weight:number; count:number; points:number };
 export type TestableObject = { object_type:string; tag_name:string; id?:string|null; name?:string|null; locator:string; display_name?:string|null; [key:string]:unknown };
 export type ElementChange = { fingerprint:string; before:TestableObject; after:TestableObject; changed_fields:string[]; risk_points:number; field_risk_points:Record<string,number> };
@@ -24,7 +24,7 @@ export const api={
   createProject:(name:string,description:string,base_url:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description,base_url:base_url||null})}),
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
   scan:(id:number,url:string,role:"baseline"|"current")=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role})}),
-  compare:(id:number)=>request<CompareResult>(`/api/v1/projects/${id}/compare`),
+  compare:(id:number,route?:string)=>request<CompareResult>(`/api/v1/projects/${id}/compare${route?`?route=${encodeURIComponent(route)}`:""}`),
 };
 
 export type EvidenceItem={id:string;kind:string;statement:string;source:string;score:number|null};
@@ -37,4 +37,4 @@ export async function analyzeProject(id:number):Promise<AIAnalysisResponse>{
  return request<AIAnalysisResponse>(`/api/v1/projects/${id}/ai-analysis`,{method:"POST"});
 }
 
-export function regressionExportUrl(id:number,format:"json"|"markdown"|"playwright"):string{return `${API_URL}/api/v1/projects/${id}/regression-tests/export?format=${format}`;}
+export function regressionExportUrl(id:number,format:"json"|"markdown"|"playwright",route?:string):string{return `${API_URL}/api/v1/projects/${id}/regression-tests/export?format=${format}${route?`&route=${encodeURIComponent(route)}`:""}`;}
