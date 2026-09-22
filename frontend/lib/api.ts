@@ -23,6 +23,7 @@ export const api={
   projects:()=>request<Project[]>("/api/v1/projects"),
   createProject:(name:string,description:string,base_url:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description,base_url:base_url||null})}),
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
+  routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),
   scan:(id:number,url:string,role:"baseline"|"current")=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role})}),
   compare:(id:number,route?:string)=>request<CompareResult>(`/api/v1/projects/${id}/compare${route?`?route=${encodeURIComponent(route)}`:""}`),
 };
