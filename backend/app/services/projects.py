@@ -90,6 +90,13 @@ def list_scans(db: Session, project_id: int) -> list[Scan]:
     ))
 
 
+def list_routes(db: Session, project_id: int) -> list[str]:
+    routes = db.scalars(
+        select(Scan.route).where(Scan.project_id == project_id).distinct().order_by(Scan.route)
+    )
+    return [route for route in routes if route]
+
+
 def compare_latest(db: Session, project_id: int, route: str | None = None) -> CompareResult | None:
     baseline, current = latest_comparison_scans(db, project_id, route)
     if not baseline or not current:
