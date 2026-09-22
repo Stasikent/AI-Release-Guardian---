@@ -8,7 +8,7 @@ from app.db import get_db
 from app.models.diff import CompareResult, RegressionTestCase
 from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, StoredScanRead
 from app.services.projects import (
-    compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_scans, run_project_scan,
+    compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan,
 )
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -115,6 +115,12 @@ def create(data: ProjectCreate, db: Session = Depends(get_db)) -> ProjectRead:
 @router.get("", response_model=list[ProjectRead])
 def all_projects(db: Session = Depends(get_db)) -> list[ProjectRead]:
     return list_projects(db)
+
+@router.get("/{project_id}/routes", response_model=list[str])
+def routes(project_id: int, db: Session = Depends(get_db)) -> list[str]:
+    if not get_project(db, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    return list_routes(db, project_id)
 
 @router.post("/{project_id}/scans", response_model=StoredScanRead, status_code=status.HTTP_201_CREATED)
 async def scan(project_id: int, data: ProjectScanRequest, db: Session = Depends(get_db)) -> StoredScanRead:
