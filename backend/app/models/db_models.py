@@ -18,6 +18,7 @@ class Scan(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
     url: Mapped[str] = mapped_column(Text)
+    route: Mapped[str] = mapped_column(String(500), default="/", index=True)
     title: Mapped[str] = mapped_column(Text, default="")
     role: Mapped[str] = mapped_column(String(20), default="current", index=True)
     total_testable_objects: Mapped[int] = mapped_column(Integer)
