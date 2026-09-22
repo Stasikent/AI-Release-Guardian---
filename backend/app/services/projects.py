@@ -14,9 +14,15 @@ from app.risk.regression_tests import build_regression_tests
 
 
 def latest_comparison_scans(db: Session, project_id: int) -> tuple[Scan | None, Scan | None]:
-    baseline, current = latest_comparison_scans(db, project_id)
+    baseline = db.scalars(
+        select(Scan).where(Scan.project_id == project_id, Scan.role == "baseline")
+        .order_by(Scan.created_at.desc()).limit(1)
+    ).first()
+    current = db.scalars(
+        select(Scan).where(Scan.project_id == project_id, Scan.role == "current")
+        .order_by(Scan.created_at.desc()).limit(1)
+    ).first()
     return baseline, current
-
 
 def create_project(db: Session, data: ProjectCreate) -> Project:
     project = Project(name=data.name, description=data.description, base_url=str(data.base_url) if data.base_url else None)
@@ -76,14 +82,7 @@ def list_scans(db: Session, project_id: int) -> list[Scan]:
 
 
 def compare_latest(db: Session, project_id: int) -> CompareResult | None:
-    baseline = db.scalars(
-        select(Scan).where(Scan.project_id == project_id, Scan.role == "baseline")
-        .order_by(Scan.created_at.desc()).limit(1)
-    ).first()
-    current = db.scalars(
-        select(Scan).where(Scan.project_id == project_id, Scan.role == "current")
-        .order_by(Scan.created_at.desc()).limit(1)
-    ).first()
+    baseline, current = latest_comparison_scans(db, project_id)
     if not baseline or not current:
         return None
     old = ScanResult.model_validate_json(baseline.payload_json)
