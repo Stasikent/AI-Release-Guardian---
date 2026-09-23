@@ -70,6 +70,7 @@ class CompareResult(BaseModel):
 
 class RouteReleaseSummary(BaseModel):
     route: str
+    status: Literal["READY", "MISSING_BASELINE", "MISSING_CURRENT"]
     comparable: bool
     baseline_scan_id: int | None = None
     current_scan_id: int | None = None
