@@ -60,16 +60,21 @@ async def run_project_scan(db: Session, project: Project, data: ProjectScanReque
     ))
 
     try:
+        route = _route(result.url, data.route)
         if data.role == "baseline":
             for previous in db.scalars(
-                select(Scan).where(Scan.project_id == project.id, Scan.role == "baseline")
+                select(Scan).where(
+                    Scan.project_id == project.id,
+                    Scan.role == "baseline",
+                    Scan.route == route,
+                )
             ):
                 previous.role = "history"
 
         scan = Scan(
             project_id=project.id,
             url=result.url,
-            route=_route(result.url, data.route),
+            route=route,
             title=result.title,
             role=data.role,
             total_testable_objects=result.total_testable_objects,
