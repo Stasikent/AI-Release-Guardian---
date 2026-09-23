@@ -86,6 +86,7 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert overview["comparable_routes"] == 1
             assert overview["incomplete_routes"] == 0
             assert overview["routes"][0]["route"] == "/current"
+            assert overview["routes"][0]["status"] == "READY"
             assert overview["routes"][0]["risk_score"] > 0
 
             comparison = client.get(f"/api/v1/projects/{project_id}/compare?route=/current")
