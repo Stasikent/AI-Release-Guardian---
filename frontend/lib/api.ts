@@ -42,3 +42,5 @@ export async function analyzeProject(id:number):Promise<AIAnalysisResponse>{
 }
 
 export function regressionExportUrl(id:number,format:"json"|"markdown"|"playwright",route?:string):string{return `${API_URL}/api/v1/projects/${id}/regression-tests/export?format=${format}${route?`&route=${encodeURIComponent(route)}`:""}`;}
+
+export function multiRoutePlaywrightExportUrl(id:number):string{return `${API_URL}/api/v1/projects/${id}/regression-tests/export?format=playwright`;}
