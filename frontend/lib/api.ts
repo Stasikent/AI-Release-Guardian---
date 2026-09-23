@@ -27,7 +27,7 @@ export const api={
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
   routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),
   releaseOverview:(id:number)=>request<ProjectReleaseOverview>(`/api/v1/projects/${id}/release-overview`),
-  scan:(id:number,url:string,role:"baseline"|"current")=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role})}),
+  scan:(id:number,url:string,role:"baseline"|"current",route?:string)=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role,route:route||null})}),
   compare:(id:number,route?:string)=>request<CompareResult>(`/api/v1/projects/${id}/compare${route?`?route=${encodeURIComponent(route)}`:""}`),
 };
 
