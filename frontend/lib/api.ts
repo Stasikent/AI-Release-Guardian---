@@ -8,7 +8,7 @@ export type ElementChange = { fingerprint:string; before:TestableObject; after:T
 export type RegressionFocusItem = { priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; target:string; locator:string; reason:string; risk_points:number; suggested_check:string };
 export type RegressionTestCase = { id:string; priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; target:string; locator:string; preconditions:string[]; steps:string[]; expected_results:string[]; source:"deterministic"; risk_points:number };
 export type RouteReleaseSummary = { route:string; status:"READY"|"MISSING_BASELINE"|"MISSING_CURRENT"; comparable:boolean; baseline_scan_id:number|null; current_scan_id:number|null; risk_score:number|null; risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"|null; added_count:number; removed_count:number; changed_count:number; regression_tests_count:number };
-export type ProjectReleaseOverview = { project_id:number; routes:RouteReleaseSummary[]; comparable_routes:number; incomplete_routes:number; overall_risk_score:number; overall_risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL" };
+export type ProjectReleaseOverview = { project_id:number; gate_status:"READY"|"BLOCKED"|"INCOMPLETE"; gate_reason:string; routes:RouteReleaseSummary[]; comparable_routes:number; incomplete_routes:number; overall_risk_score:number; overall_risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL" };
 export type CompareResult = {
   diff:{ added:TestableObject[]; removed:TestableObject[]; changed:ElementChange[]; unchanged_count:number };
   risk:{ score:number; raw_score:number; level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; factors:RiskFactor[]; summary:string };
