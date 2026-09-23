@@ -122,6 +122,13 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert "toBeDisabled()" in playwright_export.text
             assert "toHaveJSProperty('required', true)" in playwright_export.text
 
+            multi_route_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=playwright")
+            assert multi_route_export.status_code == 200
+            assert "regression.multi-route.generated.spec.ts" in multi_route_export.headers["content-disposition"]
+            assert 'test.describe("/current"' in multi_route_export.text
+            assert 'page.goto("https://example.com/current")' in multi_route_export.text
+            assert "toBeDisabled()" in multi_route_export.text
+
             invalid_export = client.get(f"/api/v1/projects/{project_id}/regression-tests/export?format=xml")
             assert invalid_export.status_code == 400
     finally:
