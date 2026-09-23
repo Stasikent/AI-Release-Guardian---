@@ -83,6 +83,8 @@ def test_project_http_baseline_current_compare(monkeypatch) -> None:
             assert overview_response.status_code == 200
             overview = overview_response.json()
             assert overview["project_id"] == project_id
+            assert overview["gate_status"] in {"READY", "BLOCKED"}
+            assert overview["gate_reason"]
             assert overview["comparable_routes"] == 1
             assert overview["incomplete_routes"] == 0
             assert overview["routes"][0]["route"] == "/current"
