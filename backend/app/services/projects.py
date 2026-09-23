@@ -61,11 +61,11 @@ async def run_project_scan(db: Session, project: Project, data: ProjectScanReque
 
     try:
         route = _route(result.url, data.route)
-        if data.role == "baseline":
+        if data.role in {"baseline", "current"}:
             for previous in db.scalars(
                 select(Scan).where(
                     Scan.project_id == project.id,
-                    Scan.role == "baseline",
+                    Scan.role == data.role,
                     Scan.route == route,
                 )
             ):
