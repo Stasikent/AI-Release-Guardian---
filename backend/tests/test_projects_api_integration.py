@@ -185,3 +185,53 @@ def test_baseline_archiving_is_route_scoped(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_current_archiving_is_route_scoped(monkeypatch) -> None:
+    def result(url: str) -> ScanResult:
+        return ScanResult(
+            url=url,
+            title=url,
+            total_testable_objects=1,
+            object_counts={"button": 1},
+            testable_objects=[
+                DomObject(index=0, object_type="button", tag_name="button", id="save", text="Save", locator="#save")
+            ],
+        )
+
+    responses = iter([
+        result("https://example.com/login"),
+        result("https://example.com/checkout"),
+        result("https://example.com/login"),
+    ])
+
+    async def fake_scan_page(_request):
+        return next(responses)
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Route Current Demo"})
+            project_id = created.json()["id"]
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url": "https://example.com/login", "role": "current"}).status_code == 201
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url": "https://example.com/checkout", "role": "current"}).status_code == 201
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url": "https://example.com/login", "role": "current"}).status_code == 201
+
+            scans = client.get(f"/api/v1/projects/{project_id}/scans").json()
+            login = [scan for scan in scans if scan["route"] == "/login"]
+            checkout = [scan for scan in scans if scan["route"] == "/checkout"]
+            assert sorted(scan["role"] for scan in login) == ["current", "history"]
+            assert [scan["role"] for scan in checkout] == ["current"]
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
