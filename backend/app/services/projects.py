@@ -145,15 +145,28 @@ def build_release_overview(db: Session, project_id: int) -> ProjectReleaseOvervi
     overall = max((item.risk_score for item in comparable), default=0)
     level = "CRITICAL" if overall >= 75 else "HIGH" if overall >= 50 else "MEDIUM" if overall >= 25 else "LOW"
     incomplete = len(summaries) - len(comparable)
-    if incomplete:
+    project = get_project(db, project_id)
+    block_rank = {"HIGH": 3, "CRITICAL": 4}.get(project.block_on if project else "CRITICAL", 4)
+    severity_rank = {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+    policy_blocked = any(
+        item.risk_level and severity_rank[item.risk_level] >= block_rank for item in comparable
+    )
+    score_blocked = any(
+        item.risk_score is not None and item.risk_score > (project.max_risk_score if project else 100)
+        for item in comparable
+    )
+    if incomplete and (project.require_all_routes if project else True):
         gate_status = "INCOMPLETE"
         gate_reason = f"{incomplete} route(s) still require baseline/current scans."
-    elif any(item.risk_level == "CRITICAL" for item in comparable):
+    elif policy_blocked:
         gate_status = "BLOCKED"
-        gate_reason = "At least one route has CRITICAL deterministic release risk."
+        gate_reason = f"At least one route meets the configured block threshold ({project.block_on if project else 'CRITICAL'})."
+    elif score_blocked:
+        gate_status = "BLOCKED"
+        gate_reason = f"At least one route exceeds the configured maximum risk score ({project.max_risk_score if project else 100})."
     else:
         gate_status = "READY"
-        gate_reason = "All routes are comparable and no route has CRITICAL deterministic risk."
+        gate_reason = "Comparable routes satisfy the configured deterministic release policy."
     return ProjectReleaseOverview(
         project_id=project_id,
         gate_status=gate_status,
