@@ -10,6 +10,9 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     description: Mapped[str] = mapped_column(Text, default="")
     base_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    block_on: Mapped[str] = mapped_column(String(20), default="CRITICAL")
+    max_risk_score: Mapped[int] = mapped_column(Integer, default=100)
+    require_all_routes: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     scans: Mapped[list["Scan"]] = relationship(back_populates="project", cascade="all, delete-orphan")
 
