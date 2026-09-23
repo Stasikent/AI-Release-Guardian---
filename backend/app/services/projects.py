@@ -144,11 +144,23 @@ def build_release_overview(db: Session, project_id: int) -> ProjectReleaseOvervi
     comparable = [item for item in summaries if item.comparable and item.risk_score is not None]
     overall = max((item.risk_score for item in comparable), default=0)
     level = "CRITICAL" if overall >= 75 else "HIGH" if overall >= 50 else "MEDIUM" if overall >= 25 else "LOW"
+    incomplete = len(summaries) - len(comparable)
+    if incomplete:
+        gate_status = "INCOMPLETE"
+        gate_reason = f"{incomplete} route(s) still require baseline/current scans."
+    elif any(item.risk_level == "CRITICAL" for item in comparable):
+        gate_status = "BLOCKED"
+        gate_reason = "At least one route has CRITICAL deterministic release risk."
+    else:
+        gate_status = "READY"
+        gate_reason = "All routes are comparable and no route has CRITICAL deterministic risk."
     return ProjectReleaseOverview(
         project_id=project_id,
+        gate_status=gate_status,
+        gate_reason=gate_reason,
         routes=summaries,
         comparable_routes=len(comparable),
-        incomplete_routes=len(summaries) - len(comparable),
+        incomplete_routes=incomplete,
         overall_risk_score=overall,
         overall_risk_level=level,
     )
