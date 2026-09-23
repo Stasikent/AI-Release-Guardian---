@@ -121,6 +121,7 @@ def build_release_overview(db: Session, project_id: int) -> ProjectReleaseOvervi
         if not baseline or not current:
             summaries.append(RouteReleaseSummary(
                 route=route,
+                status="MISSING_BASELINE" if not baseline else "MISSING_CURRENT",
                 comparable=False,
                 baseline_scan_id=baseline.id if baseline else None,
                 current_scan_id=current.id if current else None,
@@ -129,6 +130,7 @@ def build_release_overview(db: Session, project_id: int) -> ProjectReleaseOvervi
         result = compare_latest(db, project_id, route)
         summaries.append(RouteReleaseSummary(
             route=route,
+            status="READY",
             comparable=True,
             baseline_scan_id=baseline.id,
             current_scan_id=current.id,
