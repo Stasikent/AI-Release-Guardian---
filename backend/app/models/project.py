@@ -6,12 +6,20 @@ class ProjectCreate(BaseModel):
     description: str = Field(default="", max_length=2000)
     base_url: HttpUrl | None = None
 
+class ReleasePolicy(BaseModel):
+    block_on: str = Field(default="CRITICAL", pattern="^(HIGH|CRITICAL)$")
+    max_risk_score: int = Field(default=100, ge=0, le=100)
+    require_all_routes: bool = True
+
 class ProjectRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
     description: str
     base_url: str | None = None
+    block_on: str = "CRITICAL"
+    max_risk_score: int = 100
+    require_all_routes: bool = True
     created_at: datetime
 
 class ProjectScanRequest(BaseModel):
