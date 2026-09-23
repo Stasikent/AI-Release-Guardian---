@@ -83,6 +83,8 @@ class RouteReleaseSummary(BaseModel):
 
 class ProjectReleaseOverview(BaseModel):
     project_id: int
+    gate_status: Literal["READY", "BLOCKED", "INCOMPLETE"] = "INCOMPLETE"
+    gate_reason: str = ""
     routes: list[RouteReleaseSummary] = Field(default_factory=list)
     comparable_routes: int = 0
     incomplete_routes: int = 0
