@@ -228,7 +228,10 @@ def build_release_overview(db: Session, project_id: int) -> ProjectReleaseOvervi
         item.risk_score is not None and item.risk_score > (project.max_risk_score if project else 100)
         for item in comparable
     )
-    if incomplete and (project.require_all_routes if project else True):
+    if not comparable:
+        gate_status = "INCOMPLETE"
+        gate_reason = "No route has both baseline and current scans."
+    elif incomplete and (project.require_all_routes if project else True):
         gate_status = "INCOMPLETE"
         gate_reason = f"{incomplete} route(s) still require baseline/current scans."
     elif policy_blocked:
