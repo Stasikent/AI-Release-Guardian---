@@ -345,3 +345,42 @@ def test_route_identity_preserves_query_and_ignores_fragment(monkeypatch) -> Non
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_route_discovery_keeps_unique_same_origin_routes(monkeypatch) -> None:
+    async def fake_capture_links(_url, _wait_until, _timeout_ms):
+        return "https://example.com/", [
+            "https://example.com/",
+            "https://example.com/login",
+            "https://example.com/products?page=2#reviews",
+            "https://example.com/products?page=2#details",
+            "https://other.example.com/external",
+            "mailto:test@example.com",
+        ]
+
+    monkeypatch.setattr("app.services.projects.capture_links", fake_capture_links)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Discovery Demo"})
+            project_id = created.json()["id"]
+            discovered = client.post(
+                f"/api/v1/projects/{project_id}/routes/discover",
+                json={"url": "https://example.com/", "max_routes": 10},
+            )
+            assert discovered.status_code == 200
+            assert discovered.json()["source_url"] == "https://example.com/"
+            assert discovered.json()["routes"] == ["/", "/login", "/products?page=2"]
+            assert discovered.json()["discovered_count"] == 3
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
