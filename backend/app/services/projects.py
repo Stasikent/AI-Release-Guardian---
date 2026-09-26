@@ -32,7 +32,7 @@ async def discover_routes(data: RouteDiscoveryRequest) -> RouteDiscoveryResult:
     seen: set[str] = set()
     for link in links:
         parsed = urlsplit(link)
-        if parsed.scheme not in {"http", "https"} or parsed.netloc != source.netloc:
+        if parsed.scheme != source.scheme or parsed.netloc != source.netloc:
             continue
         route = _route(link)
         if route not in seen:
