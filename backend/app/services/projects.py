@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.db_models import Project, Scan
 from app.models.diff import CompareResult, ProjectReleaseOverview, RouteReleaseSummary
-from app.models.project import ProjectCreate, ProjectScanRequest
+from app.models.project import ProjectCreate, ProjectScanRequest, ReleasePolicy
 from app.models.scan import ScanRequest, ScanResult
 from app.services.scanner import scan_page
 from app.analyzers.diff import compare_objects
@@ -35,6 +35,19 @@ def latest_comparison_scans(db: Session, project_id: int, route: str | None = No
 def create_project(db: Session, data: ProjectCreate) -> Project:
     project = Project(name=data.name, description=data.description, base_url=str(data.base_url) if data.base_url else None)
     db.add(project)
+    try:
+        db.commit()
+        db.refresh(project)
+    except Exception:
+        db.rollback()
+        raise
+    return project
+
+
+def update_release_policy(db: Session, project: Project, data: ReleasePolicy) -> Project:
+    project.block_on = data.block_on
+    project.max_risk_score = data.max_risk_score
+    project.require_all_routes = data.require_all_routes
     try:
         db.commit()
         db.refresh(project)
