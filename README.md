@@ -25,6 +25,66 @@ The release decision does not depend on an LLM. DOM diff, risk scoring, regressi
 - exposes a machine-readable release gate that can block deployment;
 - optionally adds grounded AI analysis as a separate layer.
 
+## Quick Start
+
+### Docker Compose
+
+Requirements: Docker with Compose support.
+
+```bash
+git clone https://github.com/Stasikent/AI-Release-Guardian---.git
+cd AI-Release-Guardian---
+docker compose up --build
+```
+
+Then open:
+
+- Frontend: `http://localhost:3000`
+- FastAPI: `http://localhost:8000`
+- API docs: `http://localhost:8000/docs`
+
+PostgreSQL is started automatically. The deterministic workflow does **not** require an LLM API key. AI analysis is optional; configure the `LLM_*` environment variables only when you want to use that layer.
+
+To stop the stack:
+
+```bash
+docker compose down
+```
+
+Use `docker compose down -v` only when you intentionally want to remove the local PostgreSQL volume as well.
+
+## API examples
+
+Create a project:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/projects \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Demo shop","base_url":"https://example.com"}'
+```
+
+Discover routes:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/projects/1/routes/discover \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com","max_routes":20}'
+```
+
+Run a multi-route baseline:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/projects/1/scans/batch \
+  -H "Content-Type: application/json" \
+  -d '{"base_url":"https://example.com","routes":["/","/login","/checkout"],"role":"baseline"}'
+```
+
+After scanning the newer version as `current`, evaluate the CI gate:
+
+```bash
+curl http://localhost:8000/api/v1/projects/1/release-gate
+```
+
 ## Architecture
 
 ```mermaid
