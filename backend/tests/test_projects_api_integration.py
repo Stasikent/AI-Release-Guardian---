@@ -809,3 +809,61 @@ def test_default_compare_never_pairs_different_routes(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_route_discovery_maps_playwright_timeout_to_504(monkeypatch) -> None:
+    from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+    async def timed_out(_data):
+        raise PlaywrightTimeoutError("internal timeout detail")
+
+    monkeypatch.setattr("app.api.projects.discover_routes", timed_out)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Timeout Mapping Demo"}).json()["id"]
+            response = client.post(f"/api/v1/projects/{project_id}/routes/discover", json={"url":"https://example.com"})
+            assert response.status_code == 504
+            assert response.json()["detail"] == "Target page navigation timed out"
+            assert "internal timeout detail" not in response.text
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_scan_maps_playwright_error_to_502(monkeypatch) -> None:
+    from playwright.async_api import Error as PlaywrightError
+
+    async def broken_scan(_request):
+        raise PlaywrightError("browser internals should stay private")
+
+    monkeypatch.setattr("app.services.projects.scan_page", broken_scan)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Browser Error Mapping Demo"}).json()["id"]
+            response = client.post(f"/api/v1/projects/{project_id}/scans", json={"url":"https://example.com","role":"current"})
+            assert response.status_code == 502
+            assert response.json()["detail"] == "Target page could not be captured"
+            assert "browser internals" not in response.text
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
