@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.diff import CompareResult, ProjectReleaseOverview, RegressionTestCase, ReleaseGateResult
-from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, ReleasePolicy, StoredScanRead
+from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, ReleasePolicy, RouteDiscoveryRequest, RouteDiscoveryResult, StoredScanRead
 from app.services.projects import (
-    build_release_overview, compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan, update_release_policy,
+    build_release_overview, compare_latest, create_project, discover_routes, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan, update_release_policy,
 )
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -156,6 +156,12 @@ def release_overview(project_id: int, db: Session = Depends(get_db)) -> ProjectR
     if not get_project(db, project_id):
         raise HTTPException(status_code=404, detail="Project not found")
     return build_release_overview(db, project_id)
+
+@router.post("/{project_id}/routes/discover", response_model=RouteDiscoveryResult)
+async def route_discovery(project_id: int, data: RouteDiscoveryRequest, db: Session = Depends(get_db)) -> RouteDiscoveryResult:
+    if not get_project(db, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    return await discover_routes(data)
 
 @router.get("/{project_id}/routes", response_model=list[str])
 def routes(project_id: int, db: Session = Depends(get_db)) -> list[str]:
