@@ -168,8 +168,10 @@ async def run_batch_scan(db: Session, project: Project, data: BatchScanRequest) 
                 timeout_ms=data.timeout_ms,
             ))
             results.append(BatchScanItem(route=route, status="SUCCEEDED", scan_id=scan.id))
-        except Exception as exc:
-            results.append(BatchScanItem(route=route, status="FAILED", error=str(exc)))
+        except UnsafeTargetError:
+            results.append(BatchScanItem(route=route, status="FAILED", error="Target URL is not allowed or could not be resolved safely.", error_code="UNSAFE_TARGET"))
+        except Exception:
+            results.append(BatchScanItem(route=route, status="FAILED", error="Scan failed for this route.", error_code="SCAN_FAILED"))
     succeeded = sum(item.status == "SUCCEEDED" for item in results)
     return BatchScanResult(
         role=data.role,
