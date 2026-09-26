@@ -90,3 +90,15 @@ class ProjectReleaseOverview(BaseModel):
     incomplete_routes: int = 0
     overall_risk_score: int = 0
     overall_risk_level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"] = "LOW"
+
+
+class ReleaseGateResult(BaseModel):
+    project_id: int
+    status: Literal["READY", "BLOCKED", "INCOMPLETE"]
+    allowed: bool
+    exit_code: int
+    reason: str
+    overall_risk_score: int
+    overall_risk_level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    comparable_routes: int
+    incomplete_routes: int
