@@ -1,6 +1,6 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-export type Project = { id:number; name:string; description:string; base_url:string|null; created_at:string };
+export type Project = { id:number; name:string; description:string; base_url:string|null; block_on:"HIGH"|"CRITICAL"; max_risk_score:number; require_all_routes:boolean; created_at:string };
 export type Scan = { id:number; project_id:number; url:string; route:string|null; title:string; role:string; total_testable_objects:number; created_at:string };
 export type RiskFactor = { code:string; description:string; weight:number; count:number; points:number };
 export type TestableObject = { object_type:string; tag_name:string; id?:string|null; name?:string|null; locator:string; display_name?:string|null; [key:string]:unknown };
@@ -27,6 +27,7 @@ export const api={
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
   routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),
   releaseOverview:(id:number)=>request<ProjectReleaseOverview>(`/api/v1/projects/${id}/release-overview`),
+  updateReleasePolicy:(id:number,policy:{block_on:"HIGH"|"CRITICAL";max_risk_score:number;require_all_routes:boolean})=>request<Project>(`/api/v1/projects/${id}/release-policy`,{method:"PUT",body:JSON.stringify(policy)}),
   scan:(id:number,url:string,role:"baseline"|"current",route?:string)=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role,route:route||null})}),
   compare:(id:number,route?:string)=>request<CompareResult>(`/api/v1/projects/${id}/compare${route?`?route=${encodeURIComponent(route)}`:""}`),
 };
