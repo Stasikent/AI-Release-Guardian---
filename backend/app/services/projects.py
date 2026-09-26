@@ -9,6 +9,7 @@ from app.models.project import ProjectCreate, ProjectScanRequest, ReleasePolicy,
 from app.models.scan import ScanRequest, ScanResult
 from app.services.scanner import scan_page
 from app.services.browser import capture_links
+from app.security.urls import UnsafeTargetError
 from app.analyzers.diff import compare_objects
 from app.risk.engine import calculate_risk
 from app.risk.focus import build_regression_focus
