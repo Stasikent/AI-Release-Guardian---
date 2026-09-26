@@ -1,3 +1,4 @@
+from typing import Literal
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -68,7 +69,7 @@ class BatchScanItem(BaseModel):
     error_code: str | None = None
 
 class BatchScanResult(BaseModel):
-    role: str
+    role: Literal["baseline", "current"]
     requested_count: int
     succeeded_count: int
     failed_count: int
