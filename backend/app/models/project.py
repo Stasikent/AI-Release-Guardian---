@@ -65,6 +65,7 @@ class BatchScanItem(BaseModel):
     status: str
     scan_id: int | None = None
     error: str | None = None
+    error_code: str | None = None
 
 class BatchScanResult(BaseModel):
     role: str
