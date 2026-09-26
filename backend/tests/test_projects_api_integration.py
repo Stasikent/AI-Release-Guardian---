@@ -440,6 +440,46 @@ def test_batch_scan_continues_after_route_failure(monkeypatch) -> None:
         engine.dispose()
 
 
+def test_batch_scan_sanitizes_early_route_processing_failure(monkeypatch) -> None:
+    import app.services.projects as project_service
+
+    original_route = project_service._route
+
+    def failing_route(url: str, explicit: str | None = None) -> str:
+        if explicit == "/explode":
+            raise RuntimeError("internal route normalization details")
+        return original_route(url, explicit)
+
+    monkeypatch.setattr("app.services.projects._route", failing_route)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Batch Early Failure"}).json()["id"]
+            response = client.post(
+                f"/api/v1/projects/{project_id}/scans/batch",
+                json={"base_url": "https://example.com/", "routes": ["/explode"], "role": "current"},
+            )
+            assert response.status_code == 200
+            item = response.json()["results"][0]
+            assert item["route"] == "/explode"
+            assert item["status"] == "FAILED"
+            assert item["error"] == "Scan failed for this route."
+            assert item["error_code"] == "SCAN_FAILED"
+            assert "internal route normalization details" not in response.text
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_batch_scan_rejects_absolute_cross_origin_routes(monkeypatch) -> None:
     calls: list[str] = []
 
