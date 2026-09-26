@@ -564,3 +564,64 @@ def test_scan_maps_unsafe_target_to_400(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_playwright_export_uses_current_url_and_field_assertions(monkeypatch) -> None:
+    baseline = ScanResult(
+        url="https://example.com/checkout?step=2",
+        title="Checkout",
+        total_testable_objects=1,
+        object_counts={"input": 1},
+        testable_objects=[DomObject(
+            index=0, object_type="input", tag_name="input", id="email", locator="#email",
+            value="old@example.com", required=False, readonly=False, aria_label="Old email",
+        )],
+    )
+    current = ScanResult(
+        url="https://example.com/checkout?step=2",
+        title="Checkout",
+        total_testable_objects=1,
+        object_counts={"input": 1},
+        testable_objects=[DomObject(
+            index=0, object_type="input", tag_name="input", id="email", locator="#email",
+            value="new@example.com", required=True, readonly=True, aria_label="Email address",
+        )],
+    )
+    responses = iter([baseline, current])
+
+    async def fake_scan_page(_request):
+        return next(responses)
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Playwright Export Demo"}).json()["id"]
+            for role in ("baseline", "current"):
+                assert client.post(
+                    f"/api/v1/projects/{project_id}/scans",
+                    json={"url": "https://example.com/checkout?step=2", "role": role},
+                ).status_code == 201
+            response = client.get(
+                f"/api/v1/projects/{project_id}/regression-tests/export",
+                params={"format": "playwright", "route": "/checkout?step=2"},
+            )
+            assert response.status_code == 200
+            body = response.text
+            assert "await page.goto(\"https://example.com/checkout?step=2\")" in body
+            assert "await expect(target).toHaveValue(\"new@example.com\")" in body
+            assert "toHaveJSProperty('required', true)" in body
+            assert "toHaveJSProperty('readOnly', true)" in body
+            assert 'toHaveAttribute("aria-label", "Email address")' in body
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
