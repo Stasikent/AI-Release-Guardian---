@@ -674,3 +674,64 @@ def test_playwright_export_handles_removed_and_added_elements(monkeypatch) -> No
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_playwright_export_covers_state_and_attribute_fields(monkeypatch) -> None:
+    baseline = ScanResult(
+        url="https://example.com/settings",
+        title="Settings",
+        total_testable_objects=1,
+        object_counts={"input": 1},
+        testable_objects=[DomObject(
+            index=0, object_type="input", tag_name="input", id="control", locator="#control",
+            type="text", checked=False, selected=False, disabled=False,
+            href="/old", role="textbox", aria_checked="false", aria_expanded="false",
+        )],
+    )
+    current = ScanResult(
+        url="https://example.com/settings",
+        title="Settings",
+        total_testable_objects=1,
+        object_counts={"input": 1},
+        testable_objects=[DomObject(
+            index=0, object_type="input", tag_name="input", id="control", locator="#control",
+            type="checkbox", checked=True, selected=True, disabled=True,
+            href="/new", role="switch", aria_checked="true", aria_expanded="true",
+        )],
+    )
+    responses = iter([baseline, current])
+
+    async def fake_scan_page(_request):
+        return next(responses)
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Field Export Demo"}).json()["id"]
+            for role in ("baseline", "current"):
+                client.post(f"/api/v1/projects/{project_id}/scans", json={"url": "https://example.com/settings", "role": role})
+            body = client.get(
+                f"/api/v1/projects/{project_id}/regression-tests/export",
+                params={"format": "playwright", "route": "/settings"},
+            ).text
+            assert "toBeDisabled()" in body
+            assert "toBeChecked()" in body
+            assert "toHaveJSProperty('selected', true)" in body
+            assert 'toHaveAttribute("type", "checkbox")' in body
+            assert 'toHaveAttribute("href", "/new")' in body
+            assert 'toHaveAttribute("role", "switch")' in body
+            assert 'toHaveAttribute("aria-checked", "true")' in body
+            assert 'toHaveAttribute("aria-expanded", "true")' in body
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
