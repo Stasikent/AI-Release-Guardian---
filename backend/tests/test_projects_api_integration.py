@@ -807,7 +807,7 @@ def test_multi_route_playwright_export_contains_each_comparable_route(monkeypatc
             response = client.get(f"/api/v1/projects/{project_id}/regression-tests/export", params={"format":"playwright"})
             assert response.status_code == 200
             body = response.text
-            assert "import { test, expect } from '@playwright/test';" in body
+            assert body.count("import { test, expect } from '@playwright/test';") == 1
             assert 'test.describe("/login"' in body
             assert 'test.describe("/cart"' in body
             assert 'page.goto("https://example.com/login")' in body
