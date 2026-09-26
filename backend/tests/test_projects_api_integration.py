@@ -238,3 +238,63 @@ def test_current_archiving_is_route_scoped(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_release_policy_is_persisted_and_changes_gate(monkeypatch) -> None:
+    def result(url: str, disabled: bool) -> ScanResult:
+        return ScanResult(
+            url=url,
+            title="Policy Demo",
+            total_testable_objects=1,
+            object_counts={"button": 1},
+            testable_objects=[
+                DomObject(index=0, object_type="button", tag_name="button", id="save", text="Save", locator="#save", disabled=disabled)
+            ],
+        )
+
+    responses = iter([
+        result("https://example.com/settings", False),
+        result("https://example.com/settings", True),
+    ])
+
+    async def fake_scan_page(_request):
+        return next(responses)
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Policy Demo"})
+            project_id = created.json()["id"]
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url": "https://example.com/settings", "role": "baseline"}).status_code == 201
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url": "https://example.com/settings", "role": "current"}).status_code == 201
+
+            updated = client.put(
+                f"/api/v1/projects/{project_id}/release-policy",
+                json={"block_on": "HIGH", "max_risk_score": 5, "require_all_routes": True},
+            )
+            assert updated.status_code == 200
+            assert updated.json()["block_on"] == "HIGH"
+            assert updated.json()["max_risk_score"] == 5
+            assert updated.json()["require_all_routes"] is True
+
+            loaded = client.get(f"/api/v1/projects/{project_id}")
+            assert loaded.status_code == 200
+            assert loaded.json()["block_on"] == "HIGH"
+            assert loaded.json()["max_risk_score"] == 5
+
+            overview = client.get(f"/api/v1/projects/{project_id}/release-overview")
+            assert overview.status_code == 200
+            assert overview.json()["gate_status"] == "BLOCKED"
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
