@@ -735,3 +735,44 @@ def test_playwright_export_covers_state_and_attribute_fields(monkeypatch) -> Non
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_multi_route_playwright_export_contains_each_comparable_route(monkeypatch) -> None:
+    results = iter([
+        ScanResult(url="https://example.com/login", title="Login", total_testable_objects=1, object_counts={"button":1}, testable_objects=[DomObject(index=0, object_type="button", tag_name="button", id="go", locator="#go", text="Go")]),
+        ScanResult(url="https://example.com/login", title="Login", total_testable_objects=1, object_counts={"button":1}, testable_objects=[DomObject(index=0, object_type="button", tag_name="button", id="go", locator="#go", text="Continue")]),
+        ScanResult(url="https://example.com/cart", title="Cart", total_testable_objects=1, object_counts={"button":1}, testable_objects=[DomObject(index=0, object_type="button", tag_name="button", id="buy", locator="#buy", disabled=False)]),
+        ScanResult(url="https://example.com/cart", title="Cart", total_testable_objects=1, object_counts={"button":1}, testable_objects=[DomObject(index=0, object_type="button", tag_name="button", id="buy", locator="#buy", disabled=True)]),
+    ])
+
+    async def fake_scan_page(_request):
+        return next(results)
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Multi Route Export"}).json()["id"]
+            for route in ("/login", "/cart"):
+                for role in ("baseline", "current"):
+                    client.post(f"/api/v1/projects/{project_id}/scans", json={"url": f"https://example.com{route}", "route": route, "role": role})
+            response = client.get(f"/api/v1/projects/{project_id}/regression-tests/export", params={"format":"playwright"})
+            assert response.status_code == 200
+            body = response.text
+            assert "import { test, expect } from '@playwright/test';" in body
+            assert 'test.describe("/login"' in body
+            assert 'test.describe("/cart"' in body
+            assert 'page.goto("https://example.com/login")' in body
+            assert 'page.goto("https://example.com/cart")' in body
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
