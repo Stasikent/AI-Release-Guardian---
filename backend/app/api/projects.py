@@ -44,6 +44,8 @@ def _field_assertions(change) -> list[str]:
             lines.append("  await expect(target).toBeDisabled();" if value else "  await expect(target).toBeEnabled();")
         elif field == "checked":
             lines.append("  await expect(target).toBeChecked();" if value else "  await expect(target).not.toBeChecked();")
+        elif field == "selected":
+            lines.append(f"  await expect(target).toHaveJSProperty('selected', {_js(bool(value)).lower()});")
         elif field == "required":
             lines.append(f"  await expect(target).toHaveJSProperty('required', {_js(bool(value)).lower()});")
         elif field == "readonly":
