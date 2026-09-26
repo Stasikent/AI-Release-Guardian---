@@ -43,8 +43,8 @@ export type AIAnalysisResponse={
  analysis:{release_summary:string;likely_impacts:string[];regression_focus:string[];suggested_tests:string[];confidence:"low"|"medium"|"high";limitations:string[]};
  evidence:{observed:EvidenceItem[];retrieved:EvidenceItem[]};
 };
-export async function analyzeProject(id:number):Promise<AIAnalysisResponse>{
- return request<AIAnalysisResponse>(`/api/v1/projects/${id}/ai-analysis`,{method:"POST"});
+export async function analyzeProject(id:number,route?:string):Promise<AIAnalysisResponse>{
+ return request<AIAnalysisResponse>(`/api/v1/projects/${id}/ai-analysis${route?`?route=${encodeURIComponent(route)}`:""}`,{method:"POST"});
 }
 
 export function regressionExportUrl(id:number,format:"json"|"markdown"|"playwright",route?:string):string{return `${API_URL}/api/v1/projects/${id}/regression-tests/export?format=${format}${route?`&route=${encodeURIComponent(route)}`:""}`;}
