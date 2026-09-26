@@ -152,6 +152,7 @@ async def run_batch_scan(db: Session, project: Project, data: BatchScanRequest) 
     base = str(data.base_url)
     base_parts = urlsplit(base)
     for requested_route in data.routes:
+        route = requested_route
         try:
             requested_parts = urlsplit(requested_route)
             if requested_parts.scheme or requested_parts.netloc:
