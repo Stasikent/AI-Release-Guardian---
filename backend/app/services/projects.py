@@ -1,3 +1,4 @@
+import logging
 import json
 from urllib.parse import urlsplit, urljoin
 from sqlalchemy import select
@@ -14,6 +15,8 @@ from app.analyzers.diff import compare_objects
 from app.risk.engine import calculate_risk
 from app.risk.focus import build_regression_focus
 from app.risk.regression_tests import build_regression_tests
+
+logger = logging.getLogger(__name__)
 
 
 def _route(url: str, explicit: str | None = None) -> str:
@@ -169,8 +172,10 @@ async def run_batch_scan(db: Session, project: Project, data: BatchScanRequest) 
             ))
             results.append(BatchScanItem(route=route, status="SUCCEEDED", scan_id=scan.id))
         except UnsafeTargetError:
+            logger.warning("Batch scan rejected unsafe target for route %s", route)
             results.append(BatchScanItem(route=route, status="FAILED", error="Target URL is not allowed or could not be resolved safely.", error_code="UNSAFE_TARGET"))
         except Exception:
+            logger.exception("Batch scan failed for route %s", route)
             results.append(BatchScanItem(route=route, status="FAILED", error="Scan failed for this route.", error_code="SCAN_FAILED"))
     succeeded = sum(item.status == "SUCCEEDED" for item in results)
     return BatchScanResult(
