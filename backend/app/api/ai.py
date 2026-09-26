@@ -12,9 +12,9 @@ from app.services.projects import compare_latest,get_project
 router=APIRouter(prefix="/api/v1/projects",tags=["ai"])
 
 @router.post("/{project_id}/ai-analysis",response_model=AIAnalysisResponse)
-async def ai_analysis(project_id:int,db:Session=Depends(get_db))->AIAnalysisResponse:
+async def ai_analysis(project_id:int,route:str|None=None,db:Session=Depends(get_db))->AIAnalysisResponse:
     if not get_project(db,project_id): raise HTTPException(404,"Project not found")
-    comparison=compare_latest(db,project_id)
+    comparison=compare_latest(db,project_id,route)
     if comparison is None: raise HTTPException(409,"Baseline and current scans are required")
     documents=list(db.scalars(select(KnowledgeDocument).where(KnowledgeDocument.project_id==project_id)))
     try: return await analyze(comparison,get_llm_provider(),documents)
