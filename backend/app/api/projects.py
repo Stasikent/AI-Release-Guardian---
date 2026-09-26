@@ -107,8 +107,7 @@ def _playwright(result: CompareResult, start_url: str = "/") -> str:
             "});",
             "",
         ]
-    return "
-".join(lines)
+    return "\n".join(lines)
 
 @router.post("", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
 def create(data: ProjectCreate, db: Session = Depends(get_db)) -> ProjectRead:
