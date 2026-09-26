@@ -306,3 +306,42 @@ def test_release_policy_is_persisted_and_changes_gate(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_route_identity_preserves_query_and_ignores_fragment(monkeypatch) -> None:
+    async def fake_scan_page(_request):
+        return ScanResult(
+            url="https://example.com/products?page=2#reviews",
+            title="Products",
+            total_testable_objects=1,
+            object_counts={"button": 1},
+            testable_objects=[
+                DomObject(index=0, object_type="button", tag_name="button", id="buy", text="Buy", locator="#buy")
+            ],
+        )
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Query Route Demo"})
+            project_id = created.json()["id"]
+            scanned = client.post(
+                f"/api/v1/projects/{project_id}/scans",
+                json={"url": "https://example.com/products?page=2#reviews", "role": "current"},
+            )
+            assert scanned.status_code == 201
+            assert scanned.json()["route"] == "/products?page=2"
+            assert client.get(f"/api/v1/projects/{project_id}/routes").json() == ["/products?page=2"]
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
