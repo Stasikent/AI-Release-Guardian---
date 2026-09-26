@@ -160,3 +160,28 @@ AI Release Guardian демонстрирует архитектуру нейро
 - diff-анализ интерфейсов
 
 и показывает возможный подход к построению **AI-инструментов для QA-аналитики**.
+
+
+## CI/CD release gate
+
+The deterministic release policy is available as a machine-readable endpoint:
+
+`GET /api/v1/projects/{project_id}/release-gate`
+
+Example response:
+
+```json
+{
+  "project_id": 1,
+  "status": "READY",
+  "allowed": true,
+  "exit_code": 0,
+  "reason": "Comparable routes satisfy the configured deterministic release policy.",
+  "overall_risk_score": 18,
+  "overall_risk_level": "LOW",
+  "comparable_routes": 3,
+  "incomplete_routes": 0
+}
+```
+
+CI runners should treat `allowed=false` (or `exit_code=1`) as a failed quality gate before deployment. The HTTP request itself returns 200 when the gate was evaluated successfully; gate failure is represented in the response body rather than conflated with an API transport error.
