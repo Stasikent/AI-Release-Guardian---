@@ -7,7 +7,8 @@ export type TestableObject = { object_type:string; tag_name:string; id?:string|n
 export type ElementChange = { fingerprint:string; before:TestableObject; after:TestableObject; changed_fields:string[]; risk_points:number; field_risk_points:Record<string,number> };
 export type RegressionFocusItem = { priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; target:string; locator:string; reason:string; risk_points:number; suggested_check:string };
 export type RegressionTestCase = { id:string; priority:number; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; target:string; locator:string; preconditions:string[]; steps:string[]; expected_results:string[]; source:"deterministic"; risk_points:number };
-export type RouteDiscoveryResult = { source_url:string; routes:string[]; discovered_count:number };\nexport type RouteReleaseSummary = { route:string; status:"READY"|"MISSING_BASELINE"|"MISSING_CURRENT"; comparable:boolean; baseline_scan_id:number|null; current_scan_id:number|null; risk_score:number|null; risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"|null; added_count:number; removed_count:number; changed_count:number; regression_tests_count:number };
+export type RouteDiscoveryResult = { source_url:string; routes:string[]; discovered_count:number };
+export type RouteReleaseSummary = { route:string; status:"READY"|"MISSING_BASELINE"|"MISSING_CURRENT"; comparable:boolean; baseline_scan_id:number|null; current_scan_id:number|null; risk_score:number|null; risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"|null; added_count:number; removed_count:number; changed_count:number; regression_tests_count:number };
 export type ProjectReleaseOverview = { project_id:number; gate_status:"READY"|"BLOCKED"|"INCOMPLETE"; gate_reason:string; routes:RouteReleaseSummary[]; comparable_routes:number; incomplete_routes:number; overall_risk_score:number; overall_risk_level:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL" };
 export type CompareResult = {
   diff:{ added:TestableObject[]; removed:TestableObject[]; changed:ElementChange[]; unchanged_count:number };
@@ -26,7 +27,8 @@ export const api={
   project:(id:number)=>request<Project>(`/api/v1/projects/${id}`),
   createProject:(name:string,description:string,base_url:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description,base_url:base_url||null})}),
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
-  routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),\n  discoverRoutes:(id:number,url:string,maxRoutes=20)=>request<RouteDiscoveryResult>(`/api/v1/projects/${id}/routes/discover`,{method:"POST",body:JSON.stringify({url,max_routes:maxRoutes})}),
+  routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),
+  discoverRoutes:(id:number,url:string,maxRoutes=20)=>request<RouteDiscoveryResult>(`/api/v1/projects/${id}/routes/discover`,{method:"POST",body:JSON.stringify({url,max_routes:maxRoutes})}),
   releaseOverview:(id:number)=>request<ProjectReleaseOverview>(`/api/v1/projects/${id}/release-overview`),
   updateReleasePolicy:(id:number,policy:{block_on:"HIGH"|"CRITICAL";max_risk_score:number;require_all_routes:boolean})=>request<Project>(`/api/v1/projects/${id}/release-policy`,{method:"PUT",body:JSON.stringify(policy)}),
   scan:(id:number,url:string,role:"baseline"|"current",route?:string)=>request<Scan>(`/api/v1/projects/${id}/scans`,{method:"POST",body:JSON.stringify({url,role,route:route||null})}),
