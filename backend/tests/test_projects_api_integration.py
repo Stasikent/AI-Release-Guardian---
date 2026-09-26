@@ -484,3 +484,50 @@ def test_batch_scan_rejects_absolute_cross_origin_routes(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_release_gate_stays_incomplete_without_comparable_routes(monkeypatch) -> None:
+    async def fake_scan_page(request):
+        return ScanResult(
+            url=str(request.url),
+            title="Incomplete Demo",
+            total_testable_objects=0,
+            object_counts={},
+            testable_objects=[],
+        )
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Incomplete Gate Demo"})
+            project_id = created.json()["id"]
+            client.put(
+                f"/api/v1/projects/{project_id}/release-policy",
+                json={"block_on": "CRITICAL", "max_risk_score": 100, "require_all_routes": False},
+            )
+            assert client.post(
+                f"/api/v1/projects/{project_id}/scans",
+                json={"url": "https://example.com/login", "role": "baseline"},
+            ).status_code == 201
+
+            overview = client.get(f"/api/v1/projects/{project_id}/release-overview").json()
+            assert overview["comparable_routes"] == 0
+            assert overview["gate_status"] == "INCOMPLETE"
+
+            gate = client.get(f"/api/v1/projects/{project_id}/release-gate").json()
+            assert gate["status"] == "INCOMPLETE"
+            assert gate["allowed"] is False
+            assert gate["exit_code"] == 1
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
