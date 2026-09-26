@@ -533,3 +533,34 @@ def test_release_gate_stays_incomplete_without_comparable_routes(monkeypatch) ->
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_scan_maps_unsafe_target_to_400(monkeypatch) -> None:
+    from app.security.urls import UnsafeTargetError
+
+    async def unsafe_scan(_request):
+        raise UnsafeTargetError("Local targets are not allowed")
+
+    monkeypatch.setattr("app.services.projects.scan_page", unsafe_scan)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Unsafe Target Demo"}).json()["id"]
+            response = client.post(
+                f"/api/v1/projects/{project_id}/scans",
+                json={"url": "https://example.com/", "role": "current"},
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "Local targets are not allowed"
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
