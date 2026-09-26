@@ -16,9 +16,12 @@ from app.risk.regression_tests import build_regression_tests
 
 def _route(url: str, explicit: str | None = None) -> str:
     if explicit:
-        return explicit if explicit.startswith("/") else f"/{explicit}"
-    parsed = urlsplit(url)
-    return parsed.path or "/"
+        value = explicit if explicit.startswith("/") else f"/{explicit}"
+        parsed = urlsplit(value)
+    else:
+        parsed = urlsplit(url)
+    path = parsed.path or "/"
+    return f"{path}?{parsed.query}" if parsed.query else path
 
 
 def latest_comparison_scans(db: Session, project_id: int, route: str | None = None) -> tuple[Scan | None, Scan | None]:
