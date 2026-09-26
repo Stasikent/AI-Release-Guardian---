@@ -71,10 +71,11 @@ jobs:
           curl --fail --silent http://localhost:8000/api/v1/projects | python3 -c 'import json,sys; data=json.load(sys.stdin); assert any(p["name"]=="CI Smoke Project" for p in data)'
           MIGRATION=$(docker compose exec -T api alembic current)
           echo "$MIGRATION"
-          echo "$MIGRATION" | grep -q "0005_release_policy (head)"
+          echo "$MIGRATION" | grep -q "0006_active_scan_uniqueness (head)"
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT to_regclass('public.projects')" | grep -qx "projects"
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT to_regclass('public.scans')" | grep -qx "scans"
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT column_name FROM information_schema.columns WHERE table_name='scans' AND column_name='route'" | grep -qx "route"
+          docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT indexname FROM pg_indexes WHERE tablename='scans' AND indexname='uq_scans_active_role_per_route'" | grep -qx "uq_scans_active_role_per_route"
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT to_regclass('public.knowledge_documents')" | grep -qx "knowledge_documents"
       - name: Show container logs on failure
         if: failure()
