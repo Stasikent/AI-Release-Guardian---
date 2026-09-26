@@ -142,12 +142,14 @@ async def run_batch_scan(db: Session, project: Project, data: BatchScanRequest) 
         try:
             requested_parts = urlsplit(requested_route)
             if requested_parts.scheme or requested_parts.netloc:
-                raise ValueError("Batch routes must be relative same-origin routes")
+                results.append(BatchScanItem(route=requested_route, status="FAILED", error="Batch routes must be relative same-origin routes.", error_code="INVALID_ROUTE"))
+                continue
             route = _route(requested_route, requested_route)
             target_url = urljoin(base, route)
             target_parts = urlsplit(target_url)
             if target_parts.scheme != base_parts.scheme or target_parts.netloc != base_parts.netloc:
-                raise ValueError("Batch route resolved outside the configured origin")
+                results.append(BatchScanItem(route=route, status="FAILED", error="Batch route resolved outside the configured origin.", error_code="INVALID_ROUTE"))
+                continue
             scan = await run_project_scan(db, project, ProjectScanRequest(
                 url=target_url,
                 route=route,
