@@ -116,6 +116,13 @@ def create(data: ProjectCreate, db: Session = Depends(get_db)) -> ProjectRead:
 def all_projects(db: Session = Depends(get_db)) -> list[ProjectRead]:
     return list_projects(db)
 
+@router.get("/{project_id}", response_model=ProjectRead)
+def project(project_id: int, db: Session = Depends(get_db)) -> ProjectRead:
+    found = get_project(db, project_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return found
+
 @router.put("/{project_id}/release-policy", response_model=ProjectRead)
 def release_policy(project_id: int, data: ReleasePolicy, db: Session = Depends(get_db)) -> ProjectRead:
     project = get_project(db, project_id)
