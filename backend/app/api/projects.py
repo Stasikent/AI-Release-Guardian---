@@ -30,8 +30,7 @@ def _markdown(tests: list[RegressionTestCase]) -> str:
         lines += [f"- {x}" for x in test.preconditions]
         lines += ["","### Steps"]+[f"{i}. {x}" for i,x in enumerate(test.steps,1)]
         lines += ["","### Expected results"]+[f"- {x}" for x in test.expected_results]+[""]
-    return "
-".join(lines)
+    return "\\n".join(lines)
 
 def _js(value: object) -> str:
     return json.dumps(value, ensure_ascii=False)
