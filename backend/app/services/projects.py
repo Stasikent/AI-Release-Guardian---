@@ -1,11 +1,11 @@
 import json
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urljoin
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.db_models import Project, Scan
 from app.models.diff import CompareResult, ProjectReleaseOverview, RouteReleaseSummary
-from app.models.project import ProjectCreate, ProjectScanRequest, ReleasePolicy, RouteDiscoveryRequest, RouteDiscoveryResult
+from app.models.project import ProjectCreate, ProjectScanRequest, ReleasePolicy, RouteDiscoveryRequest, RouteDiscoveryResult, BatchScanRequest, BatchScanResult, BatchScanItem
 from app.models.scan import ScanRequest, ScanResult
 from app.services.scanner import scan_page
 from app.services.browser import capture_links
@@ -126,6 +126,33 @@ async def run_project_scan(db: Session, project: Project, data: ProjectScanReque
     except Exception:
         db.rollback()
         raise
+
+
+async def run_batch_scan(db: Session, project: Project, data: BatchScanRequest) -> BatchScanResult:
+    results: list[BatchScanItem] = []
+    base = str(data.base_url)
+    for requested_route in data.routes:
+        route = _route(requested_route, requested_route)
+        target_url = urljoin(base, route)
+        try:
+            scan = await run_project_scan(db, project, ProjectScanRequest(
+                url=target_url,
+                route=route,
+                role=data.role,
+                wait_until=data.wait_until,
+                timeout_ms=data.timeout_ms,
+            ))
+            results.append(BatchScanItem(route=route, status="SUCCEEDED", scan_id=scan.id))
+        except Exception as exc:
+            results.append(BatchScanItem(route=route, status="FAILED", error=str(exc)))
+    succeeded = sum(item.status == "SUCCEEDED" for item in results)
+    return BatchScanResult(
+        role=data.role,
+        requested_count=len(results),
+        succeeded_count=succeeded,
+        failed_count=len(results) - succeeded,
+        results=results,
+    )
 
 
 def list_scans(db: Session, project_id: int) -> list[Scan]:
