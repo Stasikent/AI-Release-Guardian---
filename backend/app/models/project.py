@@ -51,3 +51,24 @@ class RouteDiscoveryResult(BaseModel):
     source_url: str
     routes: list[str] = Field(default_factory=list)
     discovered_count: int = 0
+
+
+class BatchScanRequest(BaseModel):
+    base_url: HttpUrl
+    routes: list[str] = Field(min_length=1, max_length=100)
+    role: str = Field(default="current", pattern="^(baseline|current)$")
+    wait_until: str = Field(default="networkidle", pattern="^(load|domcontentloaded|networkidle|commit)$")
+    timeout_ms: int = Field(default=30000, ge=1000, le=120000)
+
+class BatchScanItem(BaseModel):
+    route: str
+    status: str
+    scan_id: int | None = None
+    error: str | None = None
+
+class BatchScanResult(BaseModel):
+    role: str
+    requested_count: int
+    succeeded_count: int
+    failed_count: int
+    results: list[BatchScanItem] = Field(default_factory=list)
