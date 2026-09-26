@@ -227,8 +227,7 @@ def _playwright_suite(db: Session, project_id: int) -> str:
         lines += [f"test.describe({_js(route)}, () => {{"]
         lines += [f"  {line}" if line else "" for line in body]
         lines += ["});", ""]
-    return "
-".join(lines)
+    return "\\n".join(lines)
 
 @router.get("/{project_id}/regression-tests/export")
 def export_regression_tests(project_id: int, format: str = "json", route: str | None = None, db: Session = Depends(get_db)) -> Response:
