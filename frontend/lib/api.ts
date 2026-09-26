@@ -23,6 +23,7 @@ async function request<T>(path:string, init?:RequestInit):Promise<T>{
 }
 export const api={
   projects:()=>request<Project[]>("/api/v1/projects"),
+  project:(id:number)=>request<Project>(`/api/v1/projects/${id}`),
   createProject:(name:string,description:string,base_url:string)=>request<Project>("/api/v1/projects",{method:"POST",body:JSON.stringify({name,description,base_url:base_url||null})}),
   scans:(id:number)=>request<Scan[]>(`/api/v1/projects/${id}/scans`),
   routes:(id:number)=>request<string[]>(`/api/v1/projects/${id}/routes`),
