@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.models.db_models import Project, Scan
 from app.models.diff import CompareResult, ProjectReleaseOverview, RouteReleaseSummary
-from app.models.project import ProjectCreate, ProjectScanRequest, ReleasePolicy
+from app.models.project import ProjectCreate, ProjectScanRequest, ReleasePolicy, RouteDiscoveryRequest, RouteDiscoveryResult
 from app.models.scan import ScanRequest, ScanResult
 from app.services.scanner import scan_page
+from app.services.browser import capture_links
 from app.analyzers.diff import compare_objects
 from app.risk.engine import calculate_risk
 from app.risk.focus import build_regression_focus
@@ -22,6 +23,28 @@ def _route(url: str, explicit: str | None = None) -> str:
         parsed = urlsplit(url)
     path = parsed.path or "/"
     return f"{path}?{parsed.query}" if parsed.query else path
+
+
+async def discover_routes(data: RouteDiscoveryRequest) -> RouteDiscoveryResult:
+    source_url, links = await capture_links(str(data.url), data.wait_until, data.timeout_ms)
+    source = urlsplit(source_url)
+    routes: list[str] = []
+    seen: set[str] = set()
+    for link in links:
+        parsed = urlsplit(link)
+        if parsed.scheme not in {"http", "https"} or parsed.netloc != source.netloc:
+            continue
+        route = _route(link)
+        if route not in seen:
+            seen.add(route)
+            routes.append(route)
+        if len(routes) >= data.max_routes:
+            break
+    return RouteDiscoveryResult(
+        source_url=source_url,
+        routes=routes,
+        discovered_count=len(routes),
+    )
 
 
 def latest_comparison_scans(db: Session, project_id: int, route: str | None = None) -> tuple[Scan | None, Scan | None]:
