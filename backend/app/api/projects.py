@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models.diff import CompareResult, ProjectReleaseOverview, RegressionTestCase
+from app.models.diff import CompareResult, ProjectReleaseOverview, RegressionTestCase, ReleaseGateResult
 from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, ReleasePolicy, StoredScanRead
 from app.services.projects import (
     build_release_overview, compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan, update_release_policy,
@@ -129,6 +129,24 @@ def release_policy(project_id: int, data: ReleasePolicy, db: Session = Depends(g
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return update_release_policy(db, project, data)
+
+@router.get("/{project_id}/release-gate", response_model=ReleaseGateResult)
+def release_gate(project_id: int, db: Session = Depends(get_db)) -> ReleaseGateResult:
+    if not get_project(db, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    overview = build_release_overview(db, project_id)
+    allowed = overview.gate_status == "READY"
+    return ReleaseGateResult(
+        project_id=project_id,
+        status=overview.gate_status,
+        allowed=allowed,
+        exit_code=0 if allowed else 1,
+        reason=overview.gate_reason,
+        overall_risk_score=overview.overall_risk_score,
+        overall_risk_level=overview.overall_risk_level,
+        comparable_routes=overview.comparable_routes,
+        incomplete_routes=overview.incomplete_routes,
+    )
 
 @router.get("/{project_id}/release-overview", response_model=ProjectReleaseOverview)
 def release_overview(project_id: int, db: Session = Depends(get_db)) -> ProjectReleaseOverview:
