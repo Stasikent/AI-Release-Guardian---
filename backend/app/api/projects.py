@@ -3,6 +3,8 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from playwright.async_api import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
+from app.security.urls import UnsafeTargetError
 
 from app.db import get_db
 from app.models.diff import CompareResult, ProjectReleaseOverview, RegressionTestCase, ReleaseGateResult
@@ -28,7 +30,8 @@ def _markdown(tests: list[RegressionTestCase]) -> str:
         lines += [f"- {x}" for x in test.preconditions]
         lines += ["","### Steps"]+[f"{i}. {x}" for i,x in enumerate(test.steps,1)]
         lines += ["","### Expected results"]+[f"- {x}" for x in test.expected_results]+[""]
-    return "\n".join(lines)
+    return "
+".join(lines)
 
 def _js(value: object) -> str:
     return json.dumps(value, ensure_ascii=False)
@@ -105,7 +108,8 @@ def _playwright(result: CompareResult, start_url: str = "/") -> str:
             "});",
             "",
         ]
-    return "\n".join(lines)
+    return "
+".join(lines)
 
 @router.post("", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
 def create(data: ProjectCreate, db: Session = Depends(get_db)) -> ProjectRead:
@@ -161,7 +165,14 @@ def release_overview(project_id: int, db: Session = Depends(get_db)) -> ProjectR
 async def route_discovery(project_id: int, data: RouteDiscoveryRequest, db: Session = Depends(get_db)) -> RouteDiscoveryResult:
     if not get_project(db, project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    return await discover_routes(data)
+    try:
+        return await discover_routes(data)
+    except UnsafeTargetError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PlaywrightTimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Target page navigation timed out") from exc
+    except PlaywrightError as exc:
+        raise HTTPException(status_code=502, detail="Target page could not be captured") from exc
 
 @router.get("/{project_id}/routes", response_model=list[str])
 def routes(project_id: int, db: Session = Depends(get_db)) -> list[str]:
@@ -181,7 +192,14 @@ async def scan(project_id: int, data: ProjectScanRequest, db: Session = Depends(
     project = get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return await run_project_scan(db, project, data)
+    try:
+        return await run_project_scan(db, project, data)
+    except UnsafeTargetError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PlaywrightTimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Target page navigation timed out") from exc
+    except PlaywrightError as exc:
+        raise HTTPException(status_code=502, detail="Target page could not be captured") from exc
 
 @router.get("/{project_id}/scans", response_model=list[StoredScanRead])
 def scans(project_id: int, db: Session = Depends(get_db)) -> list[StoredScanRead]:
@@ -209,7 +227,8 @@ def _playwright_suite(db: Session, project_id: int) -> str:
         lines += [f"test.describe({_js(route)}, () => {{"]
         lines += [f"  {line}" if line else "" for line in body]
         lines += ["});", ""]
-    return "\n".join(lines)
+    return "
+".join(lines)
 
 @router.get("/{project_id}/regression-tests/export")
 def export_regression_tests(project_id: int, format: str = "json", route: str | None = None, db: Session = Depends(get_db)) -> Response:
