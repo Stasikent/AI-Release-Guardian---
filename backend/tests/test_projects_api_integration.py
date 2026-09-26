@@ -776,3 +776,36 @@ def test_multi_route_playwright_export_contains_each_comparable_route(monkeypatc
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_default_compare_never_pairs_different_routes(monkeypatch) -> None:
+    results = iter([
+        ScanResult(url="https://example.com/login", title="Login baseline", total_testable_objects=0, object_counts={}, testable_objects=[]),
+        ScanResult(url="https://example.com/cart", title="Cart current", total_testable_objects=0, object_counts={}, testable_objects=[]),
+    ])
+
+    async def fake_scan_page(_request):
+        return next(results)
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            project_id = client.post("/api/v1/projects", json={"name": "Cross Route Guard"}).json()["id"]
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url":"https://example.com/login","role":"baseline"}).status_code == 201
+            assert client.post(f"/api/v1/projects/{project_id}/scans", json={"url":"https://example.com/cart","role":"current"}).status_code == 201
+            response = client.get(f"/api/v1/projects/{project_id}/compare")
+            assert response.status_code == 409
+            assert response.json()["detail"] == "Baseline and current scans are required"
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
