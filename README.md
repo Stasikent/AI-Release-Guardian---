@@ -185,3 +185,12 @@ Example response:
 ```
 
 CI runners should treat `allowed=false` (or `exit_code=1`) as a failed quality gate before deployment. The HTTP request itself returns 200 when the gate was evaluated successfully; gate failure is represented in the response body rather than conflated with an API transport error.
+
+
+### GitHub Actions integration
+
+A ready-to-run example is included at `.github/workflows/release-gate-example.yml`.
+
+Run it manually with the Guardian API URL and project ID. The workflow calls the machine-readable release gate, prints the evaluated status/reason/risk, and exits non-zero when `allowed=false`. A real deployment job can use the same gate job as a prerequisite with `needs: release-gate`, so deployment only starts after Guardian returns `READY`.
+
+For production use, point `guardian_url` at the deployed Guardian API rather than localhost and protect the endpoint appropriately when it is not on a trusted private network.
