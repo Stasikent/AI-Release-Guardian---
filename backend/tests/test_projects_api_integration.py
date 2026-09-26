@@ -354,6 +354,7 @@ def test_route_discovery_keeps_unique_same_origin_routes(monkeypatch) -> None:
             "https://example.com/login",
             "https://example.com/products?page=2#reviews",
             "https://example.com/products?page=2#details",
+            "http://example.com/insecure-downgrade",
             "https://other.example.com/external",
             "mailto:test@example.com",
         ]
