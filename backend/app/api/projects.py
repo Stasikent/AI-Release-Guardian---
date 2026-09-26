@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.diff import CompareResult, ProjectReleaseOverview, RegressionTestCase, ReleaseGateResult
-from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, ReleasePolicy, RouteDiscoveryRequest, RouteDiscoveryResult, StoredScanRead
+from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, ReleasePolicy, RouteDiscoveryRequest, RouteDiscoveryResult, BatchScanRequest, BatchScanResult, StoredScanRead
 from app.services.projects import (
-    build_release_overview, compare_latest, create_project, discover_routes, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan, update_release_policy,
+    build_release_overview, compare_latest, create_project, discover_routes, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan, run_batch_scan, update_release_policy,
 )
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -168,6 +168,13 @@ def routes(project_id: int, db: Session = Depends(get_db)) -> list[str]:
     if not get_project(db, project_id):
         raise HTTPException(status_code=404, detail="Project not found")
     return list_routes(db, project_id)
+
+@router.post("/{project_id}/scans/batch", response_model=BatchScanResult)
+async def batch_scan(project_id: int, data: BatchScanRequest, db: Session = Depends(get_db)) -> BatchScanResult:
+    project = get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return await run_batch_scan(db, project, data)
 
 @router.post("/{project_id}/scans", response_model=StoredScanRead, status_code=status.HTTP_201_CREATED)
 async def scan(project_id: int, data: ProjectScanRequest, db: Session = Depends(get_db)) -> StoredScanRead:
