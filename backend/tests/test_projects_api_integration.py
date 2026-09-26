@@ -430,7 +430,8 @@ def test_batch_scan_continues_after_route_failure(monkeypatch) -> None:
             assert payload["succeeded_count"] == 2
             assert payload["failed_count"] == 1
             assert [item["status"] for item in payload["results"]] == ["SUCCEEDED", "FAILED", "SUCCEEDED"]
-            assert payload["results"][1]["error"] == "simulated route failure"
+            assert payload["results"][1]["error"] == "Scan failed for this route."
+            assert payload["results"][1]["error_code"] == "SCAN_FAILED"
             scans = client.get(f"/api/v1/projects/{project_id}/scans").json()
             assert {scan["route"] for scan in scans} == {"/login", "/checkout"}
     finally:
