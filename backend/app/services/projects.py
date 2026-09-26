@@ -49,12 +49,22 @@ async def discover_routes(data: RouteDiscoveryRequest) -> RouteDiscoveryResult:
 
 
 def latest_comparison_scans(db: Session, project_id: int, route: str | None = None) -> tuple[Scan | None, Scan | None]:
+    # Never compare active scans from different routes. For legacy callers that
+    # omit a route, anchor the comparison to the latest current scan's route.
+    if route is None:
+        latest_current = db.scalars(
+            select(Scan).where(Scan.project_id == project_id, Scan.role == "current")
+            .order_by(Scan.created_at.desc()).limit(1)
+        ).first()
+        if latest_current is None:
+            return None, None
+        route = latest_current.route
     baseline = db.scalars(
-        select(Scan).where(Scan.project_id == project_id, Scan.role == "baseline", *((Scan.route == route,) if route else ()))
+        select(Scan).where(Scan.project_id == project_id, Scan.role == "baseline", Scan.route == route)
         .order_by(Scan.created_at.desc()).limit(1)
     ).first()
     current = db.scalars(
-        select(Scan).where(Scan.project_id == project_id, Scan.role == "current", *((Scan.route == route,) if route else ()))
+        select(Scan).where(Scan.project_id == project_id, Scan.role == "current", Scan.route == route)
         .order_by(Scan.created_at.desc()).limit(1)
     ).first()
     return baseline, current
