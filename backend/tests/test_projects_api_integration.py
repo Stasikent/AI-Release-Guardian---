@@ -294,6 +294,14 @@ def test_release_policy_is_persisted_and_changes_gate(monkeypatch) -> None:
             overview = client.get(f"/api/v1/projects/{project_id}/release-overview")
             assert overview.status_code == 200
             assert overview.json()["gate_status"] == "BLOCKED"
+
+            gate = client.get(f"/api/v1/projects/{project_id}/release-gate")
+            assert gate.status_code == 200
+            assert gate.json()["status"] == "BLOCKED"
+            assert gate.json()["allowed"] is False
+            assert gate.json()["exit_code"] == 1
+            assert gate.json()["project_id"] == project_id
+            assert gate.json()["reason"]
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
