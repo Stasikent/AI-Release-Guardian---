@@ -436,3 +436,51 @@ def test_batch_scan_continues_after_route_failure(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_batch_scan_rejects_absolute_cross_origin_routes(monkeypatch) -> None:
+    calls: list[str] = []
+
+    async def fake_scan_page(request):
+        calls.append(str(request.url))
+        return ScanResult(
+            url=str(request.url),
+            title="Safe",
+            total_testable_objects=0,
+            object_counts={},
+            testable_objects=[],
+        )
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Batch Origin Guard"})
+            project_id = created.json()["id"]
+            response = client.post(
+                f"/api/v1/projects/{project_id}/scans/batch",
+                json={
+                    "base_url": "https://example.com/",
+                    "routes": ["/safe", "https://evil.example/escape"],
+                    "role": "current",
+                },
+            )
+            payload = response.json()
+            assert response.status_code == 200
+            assert payload["succeeded_count"] == 1
+            assert payload["failed_count"] == 1
+            assert payload["results"][1]["status"] == "FAILED"
+            assert "relative same-origin" in payload["results"][1]["error"]
+            assert calls == ["https://example.com/safe"]
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
