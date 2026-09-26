@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install
+      - run: npm ci
       - run: npm run build
 
   docker:
@@ -76,6 +76,11 @@ jobs:
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT to_regclass('public.scans')" | grep -qx "scans"
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT column_name FROM information_schema.columns WHERE table_name='scans' AND column_name='route'" | grep -qx "route"
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT indexname FROM pg_indexes WHERE tablename='scans' AND indexname='uq_scans_active_role_per_route'" | grep -qx "uq_scans_active_role_per_route"
+          docker compose exec -T db psql -U guardian -d guardian -v ON_ERROR_STOP=1 -c "INSERT INTO scans (project_id,url,route,title,role,total_testable_objects,payload_json) SELECT id,'https://example.com/ci','/ci-unique','','baseline',0,'{}' FROM projects WHERE name='CI Smoke Project';"
+          if docker compose exec -T db psql -U guardian -d guardian -v ON_ERROR_STOP=1 -c "INSERT INTO scans (project_id,url,route,title,role,total_testable_objects,payload_json) SELECT id,'https://example.com/ci-duplicate','/ci-unique','','baseline',0,'{}' FROM projects WHERE name='CI Smoke Project';"; then
+            echo "Expected duplicate active scan insert to fail"
+            exit 1
+          fi
           docker compose exec -T db psql -U guardian -d guardian -tAc "SELECT to_regclass('public.knowledge_documents')" | grep -qx "knowledge_documents"
       - name: Show container logs on failure
         if: failure()
