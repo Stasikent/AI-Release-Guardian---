@@ -1,0 +1,44 @@
+name: Guardian Release Gate Example
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: AI Release Guardian project ID
+        required: true
+        default: "1"
+      guardian_url:
+        description: Base URL of the running Guardian API
+        required: true
+        default: "http://localhost:8000"
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate AI Release Guardian quality gate
+        env:
+          GUARDIAN_URL: ${{ inputs.guardian_url }}
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error "${GUARDIAN_URL}/api/v1/projects/${PROJECT_ID}/release-gate")"
+          echo "$response" | python -m json.tool
+
+          RESPONSE="$response" python - <<'PY'
+          import json
+          import os
+          import sys
+
+          gate = json.loads(os.environ["RESPONSE"])
+          print(f"Release gate: {gate['status']}")
+          print(f"Reason: {gate['reason']}")
+          print(f"Risk: {gate['overall_risk_level']} {gate['overall_risk_score']}/100")
+
+          if not gate["allowed"]:
+              print("Deployment blocked by AI Release Guardian.", file=sys.stderr)
+              sys.exit(gate.get("exit_code", 1) or 1)
+          PY
+
+      - name: Deployment may continue
+        run: echo "Guardian release gate passed."
