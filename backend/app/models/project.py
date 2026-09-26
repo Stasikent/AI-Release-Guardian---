@@ -39,3 +39,15 @@ class StoredScanRead(BaseModel):
     role: str
     total_testable_objects: int
     created_at: datetime
+
+
+class RouteDiscoveryRequest(BaseModel):
+    url: HttpUrl
+    max_routes: int = Field(default=20, ge=1, le=100)
+    wait_until: str = Field(default="networkidle", pattern="^(load|domcontentloaded|networkidle|commit)$")
+    timeout_ms: int = Field(default=30000, ge=1000, le=120000)
+
+class RouteDiscoveryResult(BaseModel):
+    source_url: str
+    routes: list[str] = Field(default_factory=list)
+    discovered_count: int = 0
