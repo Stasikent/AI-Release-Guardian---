@@ -25,6 +25,26 @@ The release decision does not depend on an LLM. DOM diff, risk scoring, regressi
 - exposes a machine-readable release gate that can block deployment;
 - optionally adds grounded AI analysis as a separate layer.
 
+## Project evolution: V1 → V2
+
+Guardian was intentionally developed in stages rather than replaced with a polished one-shot implementation. The previous project state is preserved on the `v1-legacy` branch, while `main` contains the current V2.
+
+| Area | Earlier V1 | Current V2 |
+| --- | --- | --- |
+| Scope | initial release-analysis prototype | end-to-end QA release-analysis platform |
+| Comparison | early page/change analysis | route-scoped deterministic DOM diff |
+| Risk | initial prioritization | field-aware weighted risk with element-level contribution |
+| Regression | analysis-oriented output | deterministic focus + structured test cases + Playwright export |
+| Coverage | primarily individual scans | same-origin route discovery + resilient multi-route batch scans |
+| State | prototype-oriented workflow | PostgreSQL persistence + Alembic + baseline/current/history lifecycle |
+| Release decision | analysis for a reviewer | configurable deterministic project release gate for CI/CD |
+| AI | part of the experiment | optional grounded layer, explicitly separated from release-critical logic |
+| Reliability | prototype safeguards | rollback behavior, DB invariants, sanitized failure contracts, integration/CI coverage |
+
+The important progression is not just additional features. V2 moves release-critical decisions into deterministic, testable code and treats AI as supplemental reasoning rather than an authority.
+
+**Explore the evolution:** switch to the `v1-legacy` branch to inspect the earlier implementation, then return to `main` for the current architecture. The merged V2 pull request also preserves the implementation and CI review trail.
+
 ## Quick Start
 
 ### Docker Compose
