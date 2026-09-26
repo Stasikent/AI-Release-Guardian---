@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.diff import CompareResult, ProjectReleaseOverview, RegressionTestCase
-from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, StoredScanRead
+from app.models.project import ProjectCreate, ProjectRead, ProjectScanRequest, ReleasePolicy, StoredScanRead
 from app.services.projects import (
-    build_release_overview, compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan,
+    build_release_overview, compare_latest, create_project, get_project, latest_comparison_scans, list_projects, list_routes, list_scans, run_project_scan, update_release_policy,
 )
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -115,6 +115,13 @@ def create(data: ProjectCreate, db: Session = Depends(get_db)) -> ProjectRead:
 @router.get("", response_model=list[ProjectRead])
 def all_projects(db: Session = Depends(get_db)) -> list[ProjectRead]:
     return list_projects(db)
+
+@router.put("/{project_id}/release-policy", response_model=ProjectRead)
+def release_policy(project_id: int, data: ReleasePolicy, db: Session = Depends(get_db)) -> ProjectRead:
+    project = get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return update_release_policy(db, project, data)
 
 @router.get("/{project_id}/release-overview", response_model=ProjectReleaseOverview)
 def release_overview(project_id: int, db: Session = Depends(get_db)) -> ProjectReleaseOverview:
