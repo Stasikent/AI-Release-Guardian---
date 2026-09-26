@@ -384,3 +384,55 @@ def test_route_discovery_keeps_unique_same_origin_routes(monkeypatch) -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_batch_scan_continues_after_route_failure(monkeypatch) -> None:
+    async def fake_scan_page(request):
+        url = str(request.url)
+        if "/broken" in url:
+            raise RuntimeError("simulated route failure")
+        return ScanResult(
+            url=url,
+            title="Batch Demo",
+            total_testable_objects=1,
+            object_counts={"button": 1},
+            testable_objects=[
+                DomObject(index=0, object_type="button", tag_name="button", id="ok", text="OK", locator="#ok")
+            ],
+        )
+
+    monkeypatch.setattr("app.services.projects.scan_page", fake_scan_page)
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    def override_get_db():
+        with Session() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            created = client.post("/api/v1/projects", json={"name": "Batch Scan Demo"})
+            project_id = created.json()["id"]
+            response = client.post(
+                f"/api/v1/projects/{project_id}/scans/batch",
+                json={
+                    "base_url": "https://example.com/",
+                    "routes": ["/login", "/broken", "/checkout"],
+                    "role": "baseline",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["requested_count"] == 3
+            assert payload["succeeded_count"] == 2
+            assert payload["failed_count"] == 1
+            assert [item["status"] for item in payload["results"]] == ["SUCCEEDED", "FAILED", "SUCCEEDED"]
+            assert payload["results"][1]["error"] == "simulated route failure"
+            scans = client.get(f"/api/v1/projects/{project_id}/scans").json()
+            assert {scan["route"] for scan in scans} == {"/login", "/checkout"}
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
