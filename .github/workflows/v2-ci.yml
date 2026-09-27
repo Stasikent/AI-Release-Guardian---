@@ -1,7 +1,7 @@
 name: V2 CI
 on:
   push:
-    branches: [v2-development]
+    branches: [main, v2-development]
   pull_request:
     branches: [main, v2-development]
 
